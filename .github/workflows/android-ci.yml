@@ -1,0 +1,105 @@
+name: Build Flutter Android APK
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: 🐦 Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          
+      - name: 📋 Flutter doctor
+        run: flutter doctor -v
+        
+      - name: 📦 Get dependencies
+        run: flutter pub get
+        
+      - name: 🔍 Analyze code
+        run: flutter analyze
+        
+      - name: 🧪 Run tests
+        run: flutter test
+        
+      - name: 🔐 Decode keystore (Release only)
+        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'release' || github.event.inputs.build_type == '')
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          
+      - name: 🔑 Create key.properties (Release only)
+        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'release' || github.event.inputs.build_type == '')
+        run: |
+          cat <<EOF > android/key.properties
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+          
+      - name: 🏗️ Build Release APK
+        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == ''
+        run: flutter build apk --release --verbose
+        
+      - name: 🏗️ Build Debug APK
+        if: github.event.inputs.build_type == 'debug'
+        run: flutter build apk --debug --verbose
+        
+      - name: 📱 Upload Release APK
+        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: offmusic-release-apk-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+          
+      - name: 📱 Upload Debug APK
+        if: github.event.inputs.build_type == 'debug'
+        uses: actions/upload-artifact@v4
+        with:
+          name: offmusic-debug-apk-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+          
+      - name: 📊 APK Info
+        run: |
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "Release APK size: $(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)"
+            echo "Release APK path: build/app/outputs/flutter-apk/app-release.apk"
+          fi
+          if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+            echo "Debug APK size: $(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)"
+            echo "Debug APK path: build/app/outputs/flutter-apk/app-debug.apk"
+          fi
