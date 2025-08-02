@@ -63,7 +63,7 @@ jobs:
       - name: 🔧 Clean build
         run: flutter clean
 
-      - name: 🔧 Fix plugin namespace and manifest issues
+      - name: 🔧 Fix plugin namespace, manifest, and JVM compatibility issues
         run: |
           # Fix on_audio_query_android plugin
           PLUGIN_DIR="$HOME/.pub-cache/hosted/pub.dev/on_audio_query_android-1.1.0/android"
@@ -76,6 +76,22 @@ jobs:
               echo "✅ Namespace added to build.gradle"
             fi
 
+            # Fix JVM target compatibility
+            if ! grep -q "jvmTarget.*17" "$PLUGIN_DIR/build.gradle"; then
+              # Add or update compileOptions
+              if ! grep -q "compileOptions" "$PLUGIN_DIR/build.gradle"; then
+                sed -i '/namespace/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$PLUGIN_DIR/build.gradle"
+              fi
+
+              # Add or update kotlinOptions
+              if ! grep -q "kotlinOptions" "$PLUGIN_DIR/build.gradle"; then
+                sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$PLUGIN_DIR/build.gradle"
+              else
+                sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$PLUGIN_DIR/build.gradle"
+              fi
+              echo "✅ JVM target compatibility fixed (Java 17 + Kotlin 17)"
+            fi
+
             # Remove package attribute from AndroidManifest.xml
             MANIFEST_FILE="$PLUGIN_DIR/src/main/AndroidManifest.xml"
             if [ -f "$MANIFEST_FILE" ]; then
@@ -86,7 +102,7 @@ jobs:
               fi
             fi
 
-            echo "✅ on_audio_query_android plugin fixed"
+            echo "✅ on_audio_query_android plugin fully fixed"
           fi
 
           # Fix other potential plugins with similar issues
@@ -95,12 +111,32 @@ jobs:
             plugin_name=$(basename "$(dirname "$plugin_dir")")
 
             if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]]; then
+              echo "Fixing plugin: $plugin_name"
+
+              # Add namespace if missing
               if ! grep -q "namespace" "$gradle_file"; then
                 namespace="com.example.${plugin_name}"
                 sed -i "/android {/a\\    namespace \"$namespace\"" "$gradle_file"
                 echo "✅ Fixed namespace for $plugin_name"
               fi
 
+              # Fix JVM target compatibility
+              if ! grep -q "jvmTarget.*17" "$gradle_file"; then
+                # Add compileOptions if missing
+                if ! grep -q "compileOptions" "$gradle_file"; then
+                  sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$gradle_file"
+                fi
+
+                # Add kotlinOptions if missing
+                if ! grep -q "kotlinOptions" "$gradle_file"; then
+                  sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$gradle_file"
+                else
+                  sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$gradle_file"
+                fi
+                echo "✅ Fixed JVM target for $plugin_name"
+              fi
+
+              # Fix manifest
               manifest_file="$plugin_dir/src/main/AndroidManifest.xml"
               if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
                 sed -i 's/package="[^"]*"//g' "$manifest_file"

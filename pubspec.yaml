@@ -33,20 +33,27 @@ dependencies:
   permission_handler: ^11.0.0
   just_audio: ^0.9.35
   audio_service: ^0.18.10
-  on_audio_query: ^2.9.0
+  # on_audio_query: ^2.9.0  # Temporarily disabled due to JVM compatibility issues
   provider: ^6.1.0
   path_provider: ^2.0.15
   shared_preferences: ^2.2.2
   rxdart: ^0.27.7
   file_picker: ^8.0.0+1
+  audio_session: ^0.1.16
+  # Alternative audio file access
+  flutter_media_metadata: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
 # dependency_overrides:
-#   on_audio_query_android: ^1.1.1
-#   on_audio_query_platform_interface: ^1.0.1
+  # Temporarily disabled - using alternative audio plugins
+  # on_audio_query_android:
+  #   git:
+  #     url: https://github.com/LucJosin/on_audio_query.git
+  #     path: on_audio_query_android
+  #     ref: main
 
 dev_dependencies:
   flutter_test:
