@@ -7,7 +7,7 @@ import 'package:offmusic/widgets/responsive_widget.dart';
 void main() {
   group('Responsive Design Tests', () {
     testWidgets('AppTheme responsive breakpoints work correctly', (WidgetTester tester) async {
-      // Test mobile breakpoint
+      // Test mobile breakpoint (width < 600)
       await tester.binding.setSurfaceSize(const Size(400, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -21,7 +21,7 @@ void main() {
         ),
       );
 
-      // Test tablet breakpoint
+      // Test tablet breakpoint (width >= 600 but < 900)
       await tester.binding.setSurfaceSize(const Size(700, 1000));
       await tester.pumpWidget(
         MaterialApp(
@@ -35,7 +35,7 @@ void main() {
         ),
       );
 
-      // Test desktop breakpoint
+      // Test desktop breakpoint (width >= 900)
       await tester.binding.setSurfaceSize(const Size(1000, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -55,7 +55,7 @@ void main() {
       const tabletWidget = Text('Tablet');
       const desktopWidget = Text('Desktop');
 
-      // Test mobile
+      // Test mobile (width < 600)
       await tester.binding.setSurfaceSize(const Size(400, 800));
       await tester.pumpWidget(
         const MaterialApp(
@@ -68,7 +68,7 @@ void main() {
       );
       expect(find.text('Mobile'), findsOneWidget);
 
-      // Test tablet
+      // Test tablet (width >= 600 but < 900)
       await tester.binding.setSurfaceSize(const Size(700, 1000));
       await tester.pumpWidget(
         const MaterialApp(
@@ -81,7 +81,7 @@ void main() {
       );
       expect(find.text('Tablet'), findsOneWidget);
 
-      // Test desktop
+      // Test desktop (width >= 900)
       await tester.binding.setSurfaceSize(const Size(1000, 800));
       await tester.pumpWidget(
         const MaterialApp(
@@ -182,7 +182,7 @@ void main() {
     });
 
     testWidgets('ResponsiveUtils device type detection', (WidgetTester tester) async {
-      // Test mobile detection
+      // Test mobile detection (width < 600)
       await tester.binding.setSurfaceSize(const Size(400, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -198,7 +198,7 @@ void main() {
         ),
       );
 
-      // Test tablet detection
+      // Test tablet detection (width >= 600 but < 900)
       await tester.binding.setSurfaceSize(const Size(700, 1000));
       await tester.pumpWidget(
         MaterialApp(
@@ -214,7 +214,7 @@ void main() {
         ),
       );
 
-      // Test desktop detection
+      // Test desktop detection (width >= 900)
       await tester.binding.setSurfaceSize(const Size(1000, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -232,7 +232,7 @@ void main() {
     });
 
     testWidgets('Responsive spacing scales correctly', (WidgetTester tester) async {
-      // Test mobile spacing
+      // Test mobile spacing (width < 600)
       await tester.binding.setSurfaceSize(const Size(400, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -246,7 +246,7 @@ void main() {
         ),
       );
 
-      // Test tablet spacing
+      // Test tablet spacing (width >= 600 but < 900)
       await tester.binding.setSurfaceSize(const Size(700, 1000));
       await tester.pumpWidget(
         MaterialApp(
@@ -260,7 +260,7 @@ void main() {
         ),
       );
 
-      // Test desktop spacing
+      // Test desktop spacing (width >= 900)
       await tester.binding.setSurfaceSize(const Size(1000, 800));
       await tester.pumpWidget(
         MaterialApp(
@@ -276,35 +276,37 @@ void main() {
     });
 
     testWidgets('Responsive album art size scales correctly', (WidgetTester tester) async {
-      // Test mobile album art size
+      // Test mobile album art size (width < 600)
       await tester.binding.setSurfaceSize(const Size(400, 800));
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
             builder: (context) {
               final albumArtSize = AppTheme.getResponsiveAlbumArtSize(context);
-              expect(albumArtSize, 280.0); // 70% of 400 (width)
+              // 70% of smaller dimension (400 is smaller than 800)
+              expect(albumArtSize, 280.0); // 400 * 0.7
               return Container();
             },
           ),
         ),
       );
 
-      // Test tablet album art size
+      // Test tablet album art size (width >= 600 but < 900)
       await tester.binding.setSurfaceSize(const Size(700, 1000));
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
             builder: (context) {
               final albumArtSize = AppTheme.getResponsiveAlbumArtSize(context);
-              expect(albumArtSize, 350.0); // 50% of 700 (width)
+              // 50% of smaller dimension (700 is smaller than 1000)
+              expect(albumArtSize, 350.0); // 700 * 0.5
               return Container();
             },
           ),
         ),
       );
 
-      // Test desktop album art size
+      // Test desktop album art size (width >= 900)
       await tester.binding.setSurfaceSize(const Size(1000, 800));
       await tester.pumpWidget(
         MaterialApp(
