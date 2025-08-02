@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import '../models/music_models.dart';
 import 'package:audio_service/audio_service.dart';
 import '../services/permission_service.dart';
 import '../services/audio_scan_service.dart';

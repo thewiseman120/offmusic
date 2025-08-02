@@ -2,7 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import '../models/music_models.dart';
 import '../providers/music_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -163,9 +163,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                     ],
                                   ),
                                   child: FutureBuilder<Uint8List?>(
-                                    future: OnAudioQuery().queryArtwork(
+                                    future: OnAudioQuery.queryArtwork(
                                       currentSong.id,
-                                      ArtworkType.AUDIO,
+                                      ArtworkType.audio,
                                     ),
                                     builder: (context, snapshot) {
                                       return albumArtWidget(context, snapshot.data);
