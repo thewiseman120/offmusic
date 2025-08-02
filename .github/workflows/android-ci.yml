@@ -63,17 +63,51 @@ jobs:
       - name: 🔧 Clean build
         run: flutter clean
 
-      - name: 🔧 Fix plugin namespace issues
+      - name: 🔧 Fix plugin namespace and manifest issues
         run: |
-          # Create namespace fix for on_audio_query_android plugin
+          # Fix on_audio_query_android plugin
           PLUGIN_DIR="$HOME/.pub-cache/hosted/pub.dev/on_audio_query_android-1.1.0/android"
           if [ -d "$PLUGIN_DIR" ]; then
-            echo "Fixing namespace for on_audio_query_android plugin..."
+            echo "Fixing on_audio_query_android plugin..."
+
+            # Add namespace to build.gradle if missing
             if ! grep -q "namespace" "$PLUGIN_DIR/build.gradle"; then
               sed -i '/android {/a\    namespace "com.lucasjosino.on_audio_query_android"' "$PLUGIN_DIR/build.gradle"
-              echo "Namespace added to on_audio_query_android plugin"
+              echo "✅ Namespace added to build.gradle"
             fi
+
+            # Remove package attribute from AndroidManifest.xml
+            MANIFEST_FILE="$PLUGIN_DIR/src/main/AndroidManifest.xml"
+            if [ -f "$MANIFEST_FILE" ]; then
+              if grep -q 'package=' "$MANIFEST_FILE"; then
+                sed -i 's/package="[^"]*"//g' "$MANIFEST_FILE"
+                sed -i 's/<manifest[^>]*>/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/' "$MANIFEST_FILE"
+                echo "✅ Package attribute removed from AndroidManifest.xml"
+              fi
+            fi
+
+            echo "✅ on_audio_query_android plugin fixed"
           fi
+
+          # Fix other potential plugins with similar issues
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*/android/build.gradle" | while read gradle_file; do
+            plugin_dir=$(dirname "$gradle_file")
+            plugin_name=$(basename "$(dirname "$plugin_dir")")
+
+            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]]; then
+              if ! grep -q "namespace" "$gradle_file"; then
+                namespace="com.example.${plugin_name}"
+                sed -i "/android {/a\\    namespace \"$namespace\"" "$gradle_file"
+                echo "✅ Fixed namespace for $plugin_name"
+              fi
+
+              manifest_file="$plugin_dir/src/main/AndroidManifest.xml"
+              if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
+                sed -i 's/package="[^"]*"//g' "$manifest_file"
+                echo "✅ Fixed manifest for $plugin_name"
+              fi
+            fi
+          done
 
       - name: 🔍 Analyze code
         run: flutter analyze
