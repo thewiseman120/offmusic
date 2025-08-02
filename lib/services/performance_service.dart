@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import '../models/music_models.dart';
 
 /// Service for optimizing performance with large music libraries
 class PerformanceService {
@@ -33,7 +33,7 @@ class PerformanceService {
     int page = 0,
     int pageSize = _defaultPageSize,
     String? searchQuery,
-    SongSortType sortType = SongSortType.TITLE,
+    SongSortType sortType = SongSortType.title,
   }) async {
     final cacheKey = 'songs_${page}_${pageSize}_${searchQuery ?? ''}_$sortType';
     
@@ -63,33 +63,33 @@ class PerformanceService {
   
   /// Isolate function for getting paginated songs
   static Future<List<SongModel>> _getSongsPaginatedIsolate(Map<String, dynamic> params) async {
-    final audioQuery = OnAudioQuery();
     final page = params['page'] as int;
     final pageSize = params['pageSize'] as int;
     final searchQuery = params['searchQuery'] as String?;
     final sortType = params['sortType'] as SongSortType;
-    
-    List<SongModel> songs = await audioQuery.querySongs(
+
+    List<SongModel> songs = await OnAudioQuery.querySongs(
       sortType: sortType,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
+      orderType: OrderType.asc,
+      uriType: UriType.external,
       ignoreCase: true,
     );
     
     // Filter out short songs and system sounds
-    songs = songs.where((song) => 
-      song.duration != null && 
-      song.duration! > 30000 && 
-      song.size > 1024 * 1024
+    songs = songs.where((song) =>
+      song.duration != null &&
+      song.duration! > 30000 &&
+      song.size != null &&
+      song.size! > 1024 * 1024
     ).toList();
-    
+
     // Apply search filter if provided
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final query = searchQuery.toLowerCase();
       songs = songs.where((song) =>
         song.title.toLowerCase().contains(query) ||
-        (song.artist?.toLowerCase().contains(query) ?? false) ||
-        (song.album?.toLowerCase().contains(query) ?? false)
+        song.artist.toLowerCase().contains(query) ||
+        song.album.toLowerCase().contains(query)
       ).toList();
     }
     
@@ -110,10 +110,9 @@ class PerformanceService {
     }
     
     try {
-      final audioQuery = OnAudioQuery();
-      final artwork = await audioQuery.queryArtwork(
+      final artwork = await OnAudioQuery.queryArtwork(
         songId,
-        ArtworkType.AUDIO,
+        ArtworkType.audio,
         quality: 50, // Reduced quality for better performance
       );
       

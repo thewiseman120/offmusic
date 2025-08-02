@@ -129,8 +129,8 @@ class MusicProvider extends ChangeNotifier {
       // Fallback to local search
       return _allSongs.where((song) =>
         song.title.toLowerCase().contains(query.toLowerCase()) ||
-        (song.artist?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-        (song.album?.toLowerCase().contains(query.toLowerCase()) ?? false)
+        song.artist.toLowerCase().contains(query.toLowerCase()) ||
+        song.album.toLowerCase().contains(query.toLowerCase())
       ).toList();
     }
   }

@@ -124,7 +124,7 @@ class AllSongsScreen extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          song.artist ?? 'Unknown Artist',
+          song.artist,
           style: TextStyle(fontSize: subtitleFontSize),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -209,7 +209,7 @@ class AllSongsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      song.artist ?? 'Unknown Artist',
+                      song.artist,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 14,

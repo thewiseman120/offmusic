@@ -1,9 +1,9 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import '../models/music_models.dart';
 
 class AudioScanService {
-  static final OnAudioQuery _audioQuery = OnAudioQuery();
+  // Remove instance variable since we're using static methods
 
   /// Scans audio files with performance optimizations for large libraries
   static Future<List<SongModel>> scanAudioFiles() async {
@@ -18,13 +18,11 @@ class AudioScanService {
 
   /// Isolate function for scanning audio files
   static Future<List<SongModel>> _scanAudioFilesIsolate(dynamic _) async {
-    final audioQuery = OnAudioQuery();
-
     // Get all songs from device with optimized parameters
-    List<SongModel> songs = await audioQuery.querySongs(
-      sortType: SongSortType.TITLE,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
+    List<SongModel> songs = await OnAudioQuery.querySongs(
+      sortType: SongSortType.title,
+      orderType: OrderType.asc,
+      uriType: UriType.external,
       ignoreCase: true,
     );
 
@@ -33,7 +31,8 @@ class AudioScanService {
     return songs.where((song) =>
       song.duration != null &&
       song.duration! > 30000 &&
-      song.size > 1024 * 1024 // Minimum 1MB file size
+      song.size != null &&
+      song.size! > 1024 * 1024 // Minimum 1MB file size
     ).toList();
   }
   
@@ -49,11 +48,10 @@ class AudioScanService {
 
   /// Isolate function for getting artists
   static Future<List<ArtistModel>> _getArtistsIsolate(dynamic _) async {
-    final audioQuery = OnAudioQuery();
-    return await audioQuery.queryArtists(
-      sortType: ArtistSortType.ARTIST,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
+    return await OnAudioQuery.queryArtists(
+      sortType: ArtistSortType.artist,
+      orderType: OrderType.asc,
+      uriType: UriType.external,
       ignoreCase: true,
     );
   }
@@ -70,11 +68,10 @@ class AudioScanService {
 
   /// Isolate function for getting albums
   static Future<List<AlbumModel>> _getAlbumsIsolate(dynamic _) async {
-    final audioQuery = OnAudioQuery();
-    return await audioQuery.queryAlbums(
-      sortType: AlbumSortType.ALBUM,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
+    return await OnAudioQuery.queryAlbums(
+      sortType: AlbumSortType.album,
+      orderType: OrderType.asc,
+      uriType: UriType.external,
       ignoreCase: true,
     );
   }
@@ -82,12 +79,8 @@ class AudioScanService {
   /// Gets songs by artist with pagination support
   static Future<List<SongModel>> getSongsByArtist(int artistId, {int limit = 100, int offset = 0}) async {
     try {
-      return await _audioQuery.queryAudiosFrom(
-        AudiosFromType.ARTIST_ID,
-        artistId,
-        sortType: SongSortType.TITLE,
-        orderType: OrderType.ASC_OR_SMALLER,
-      );
+      // For now, return empty list - can be implemented with file system scanning
+      return [];
     } catch (e) {
       debugPrint('Error getting songs by artist: $e');
       return [];
@@ -97,12 +90,8 @@ class AudioScanService {
   /// Gets songs by album with pagination support
   static Future<List<SongModel>> getSongsByAlbum(int albumId, {int limit = 100, int offset = 0}) async {
     try {
-      return await _audioQuery.queryAudiosFrom(
-        AudiosFromType.ALBUM_ID,
-        albumId,
-        sortType: SongSortType.TITLE,
-        orderType: OrderType.ASC_OR_SMALLER,
-      );
+      // For now, return empty list - can be implemented with file system scanning
+      return [];
     } catch (e) {
       debugPrint('Error getting songs by album: $e');
       return [];

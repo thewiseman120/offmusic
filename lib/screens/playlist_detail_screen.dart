@@ -79,7 +79,7 @@ class PlaylistDetailScreen extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          song.artist ?? 'Unknown Artist',
+          song.artist,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -118,7 +118,7 @@ class PlaylistDetailScreen extends StatelessWidget {
               final song = songsToAdd[index];
               return ListTile(
                 title: Text(song.title),
-                subtitle: Text(song.artist ?? 'Unknown Artist'),
+                subtitle: Text(song.artist),
                 onTap: () {
                   musicProvider.addToPlaylist(playlistName, song);
                   Navigator.pop(context);

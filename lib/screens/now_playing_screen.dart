@@ -199,7 +199,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: spacing * 0.5),
                             child: Text(
-                              currentSong.artist ?? 'Unknown Artist',
+                              currentSong.artist,
                               style: TextStyle(
                                 fontSize: artistFontSize,
                                 color: Colors.grey[600],

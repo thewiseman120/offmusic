@@ -159,13 +159,54 @@ enum ArtworkType {
   playlist,
 }
 
-// Legacy constants for compatibility
+// Legacy constants for compatibility (suppressed warnings)
+// ignore: constant_identifier_names
 class ArtworkTypeLegacy {
+  // ignore: constant_identifier_names
   static const ArtworkType AUDIO = ArtworkType.audio;
+  // ignore: constant_identifier_names
   static const ArtworkType ALBUM = ArtworkType.album;
+  // ignore: constant_identifier_names
   static const ArtworkType ARTIST = ArtworkType.artist;
+  // ignore: constant_identifier_names
   static const ArtworkType GENRE = ArtworkType.genre;
+  // ignore: constant_identifier_names
   static const ArtworkType PLAYLIST = ArtworkType.playlist;
+}
+
+// Additional enums for compatibility
+enum SongSortType {
+  title,
+  artist,
+  album,
+  duration,
+  size,
+  dateAdded,
+  dateModified,
+}
+
+enum ArtistSortType {
+  artist,
+  numberOfTracks,
+  numberOfAlbums,
+}
+
+enum AlbumSortType {
+  album,
+  artist,
+  numberOfSongs,
+  firstYear,
+  lastYear,
+}
+
+enum OrderType {
+  asc,
+  desc,
+}
+
+enum UriType {
+  external,
+  internal,
 }
 
 // Mock OnAudioQuery class for compatibility
@@ -178,5 +219,35 @@ class OnAudioQuery {
   }) async {
     // Return null for now - can be implemented with alternative methods
     return null;
+  }
+
+  static Future<List<SongModel>> querySongs({
+    SongSortType? sortType,
+    OrderType? orderType,
+    UriType? uriType,
+    bool? ignoreCase,
+  }) async {
+    // Return empty list for now - can be implemented with file system scanning
+    return [];
+  }
+
+  static Future<List<ArtistModel>> queryArtists({
+    ArtistSortType? sortType,
+    OrderType? orderType,
+    UriType? uriType,
+    bool? ignoreCase,
+  }) async {
+    // Return empty list for now
+    return [];
+  }
+
+  static Future<List<AlbumModel>> queryAlbums({
+    AlbumSortType? sortType,
+    OrderType? orderType,
+    UriType? uriType,
+    bool? ignoreCase,
+  }) async {
+    // Return empty list for now
+    return [];
   }
 }

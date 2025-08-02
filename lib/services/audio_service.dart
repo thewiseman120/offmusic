@@ -1,6 +1,6 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import '../models/music_models.dart';
 import '../providers/music_provider.dart';
 
 class MusicAudioHandler extends BaseAudioHandler {
@@ -65,11 +65,11 @@ class MusicAudioHandler extends BaseAudioHandler {
   Future<void> setAudioSource(SongModel song) async {
     final mediaItem = MediaItem(
       id: song.id.toString(),
-      album: song.album ?? 'Unknown Album',
+      album: song.album,
       title: song.title,
-      artist: song.artist ?? 'Unknown Artist',
+      artist: song.artist,
       duration: Duration(milliseconds: song.duration ?? 0),
-      artUri: Uri.parse('file://${song.uri}'),
+      artUri: song.uri != null ? Uri.parse('file://${song.uri}') : null,
     );
     
     this.mediaItem.add(mediaItem);
@@ -81,7 +81,7 @@ class MusicAudioHandler extends BaseAudioHandler {
 
   Future<void> setPlaylist(List<SongModel> songs, int initialIndex) async {
     final playlist = ConcatenatingAudioSource(
-      children: songs.map((song) => AudioSource.uri(Uri.parse(song.uri!))).toList(),
+      children: songs.map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? ''))).toList(),
     );
 
     await _player.setAudioSource(playlist, initialIndex: initialIndex);
