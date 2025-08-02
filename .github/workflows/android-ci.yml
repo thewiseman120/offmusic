@@ -57,7 +57,9 @@ jobs:
       - name: 🔐 Decode keystore (Release only)
         if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
         run: |
+          echo "Decoding keystore..."
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          echo "Keystore decoded. File size: $(wc -c < android/app/upload-keystore.jks) bytes"
 
       - name: 🔑 Create key.properties (Release only)
         if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
@@ -66,9 +68,20 @@ jobs:
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
-          storeFile=upload-keystore.jks
+          storeFile=app/upload-keystore.jks
           EOF
-          
+
+      - name: 🔍 Debug keystore setup
+        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
+        run: |
+          echo "Checking keystore and key.properties setup..."
+          ls -la android/
+          ls -la android/app/
+          echo "Contents of key.properties:"
+          cat android/key.properties
+          echo "Keystore file exists:"
+          test -f android/app/upload-keystore.jks && echo "✅ Keystore found" || echo "❌ Keystore missing"
+
       - name: 🏗️ Build Release APK
         if: github.event.inputs.build_type != 'debug'
         run: flutter build apk --release --verbose
