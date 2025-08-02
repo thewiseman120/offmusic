@@ -46,10 +46,11 @@ android {
         applicationId = "com.example.offmusic"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21  // Required for audio services
+        targetSdk = 34  // Latest stable target
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true  // Support for large apps
     }
 
     buildTypes {
@@ -67,6 +68,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    implementation("androidx.multidex:multidex:2.0.1")
 }
 
 flutter {

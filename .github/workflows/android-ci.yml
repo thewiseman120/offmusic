@@ -41,16 +41,31 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: 📦 Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
           
       - name: 📋 Flutter doctor
         run: flutter doctor -v
         
       - name: 📦 Get dependencies
-        run: flutter pub get
-        
+        run: |
+          flutter pub get
+          flutter pub deps
+
+      - name: 🔧 Clean build
+        run: flutter clean
+
       - name: 🔍 Analyze code
         run: flutter analyze
-        
+
       - name: 🧪 Run tests
         run: flutter test
         
