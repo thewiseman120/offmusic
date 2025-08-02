@@ -55,12 +55,12 @@ jobs:
         run: flutter test
         
       - name: 🔐 Decode keystore (Release only)
-        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'release' || github.event.inputs.build_type == '')
+        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          
+
       - name: 🔑 Create key.properties (Release only)
-        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'release' || github.event.inputs.build_type == '')
+        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
         run: |
           cat <<EOF > android/key.properties
           storePassword=$KEYSTORE_PASSWORD
@@ -70,21 +70,21 @@ jobs:
           EOF
           
       - name: 🏗️ Build Release APK
-        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == ''
+        if: github.event.inputs.build_type != 'debug'
         run: flutter build apk --release --verbose
-        
+
       - name: 🏗️ Build Debug APK
         if: github.event.inputs.build_type == 'debug'
         run: flutter build apk --debug --verbose
-        
+
       - name: 📱 Upload Release APK
-        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == ''
+        if: github.event.inputs.build_type != 'debug'
         uses: actions/upload-artifact@v4
         with:
           name: offmusic-release-apk-${{ github.run_number }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
-          
+
       - name: 📱 Upload Debug APK
         if: github.event.inputs.build_type == 'debug'
         uses: actions/upload-artifact@v4
