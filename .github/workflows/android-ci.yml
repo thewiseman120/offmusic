@@ -542,6 +542,76 @@ jobs:
             echo "✅ Completely rewrote shared_preferences $plugin_version build.gradle"
           done
 
+          # Fix permission_handler_android plugin by completely rewriting build.gradle
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*permission_handler_android*/android/build.gradle" | while read permission_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$permission_gradle")")")
+            echo "Completely rewriting permission_handler_android $plugin_version build.gradle..."
+
+            # Create a backup
+            cp "$permission_gradle" "$permission_gradle.backup"
+
+            # Completely rewrite the build.gradle file with correct structure
+            {
+              echo "group 'com.baseflow.permissionhandler'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'com.baseflow.permissionhandler'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "    implementation 'androidx.core:core:1.10.1'"
+              echo "    implementation 'androidx.activity:activity:1.7.2'"
+              echo "    implementation 'androidx.fragment:fragment:1.6.1'"
+              echo "}"
+            } > "$permission_gradle"
+            echo "✅ Completely rewrote permission_handler_android $plugin_version build.gradle"
+
+            # Fix manifest if needed
+            manifest_file="$(dirname "$permission_gradle")/src/main/AndroidManifest.xml"
+            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
+              sed -i 's/package="[^"]*"//g' "$manifest_file"
+              echo "✅ Fixed manifest for permission_handler_android $plugin_version"
+            fi
+          done
+
       - name: 🔍 Analyze code
         run: flutter analyze
 
