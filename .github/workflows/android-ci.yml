@@ -35,6 +35,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: 🔧 Configure Java Home for Gradle
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+          echo "Java Home: $JAVA_HOME"
+          echo "Java Version: $(java -version 2>&1 | head -n 1)"
           
       - name: 🐦 Install Flutter
         uses: subosito/flutter-action@v2
