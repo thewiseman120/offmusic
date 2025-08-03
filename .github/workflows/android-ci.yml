@@ -217,42 +217,64 @@ jobs:
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
           done
 
-          # Fix flutter_media_metadata plugin namespace and kotlinOptions issues
+          # Fix flutter_media_metadata plugin by completely rewriting build.gradle
           find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*flutter_media_metadata*/android/build.gradle" | while read metadata_gradle; do
             plugin_version=$(basename "$(dirname "$(dirname "$metadata_gradle")")")
-            echo "Fixing flutter_media_metadata $plugin_version..."
+            echo "Completely rewriting flutter_media_metadata $plugin_version build.gradle..."
 
             # Create a backup
             cp "$metadata_gradle" "$metadata_gradle.backup"
 
-            # Fix kotlinOptions placement - should be in android block, not compileOptions
-            if grep -q "compileOptions.*kotlinOptions" "$metadata_gradle"; then
-              echo "Fixing kotlinOptions placement in compileOptions block..."
-              # Remove kotlinOptions from compileOptions
-              sed -i '/compileOptions/,/}/ { /kotlinOptions/,/}/d; }' "$metadata_gradle"
-            fi
-
-            # Add namespace if missing
-            if ! grep -q "namespace" "$metadata_gradle"; then
-              sed -i '/android {/a\    namespace "com.alexmercerind.flutter_media_metadata"' "$metadata_gradle"
-              echo "✅ Added namespace to flutter_media_metadata $plugin_version"
-            fi
-
-            # Ensure JVM target compatibility
-            if ! grep -q "jvmTarget.*17" "$metadata_gradle"; then
-              # Add compileOptions if missing
-              if ! grep -q "compileOptions" "$metadata_gradle"; then
-                sed -i '/namespace/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$metadata_gradle"
-              fi
-
-              # Add kotlinOptions in android block (not in compileOptions)
-              if ! grep -q "kotlinOptions" "$metadata_gradle"; then
-                sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$metadata_gradle"
-              else
-                sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$metadata_gradle"
-              fi
-              echo "✅ Fixed JVM target for flutter_media_metadata $plugin_version"
-            fi
+            # Completely rewrite the build.gradle file with correct structure
+            {
+              echo "group 'com.alexmercerind.flutter_media_metadata'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'com.alexmercerind.flutter_media_metadata'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "}"
+            } > "$metadata_gradle"
+            echo "✅ Completely rewrote flutter_media_metadata $plugin_version build.gradle"
 
             # Fix manifest if needed
             manifest_file="$(dirname "$metadata_gradle")/src/main/AndroidManifest.xml"
