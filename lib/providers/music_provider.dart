@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/music_models.dart';
 // import 'package:audio_service/audio_service.dart';  // Temporarily disabled
+import 'package:just_audio/just_audio.dart';
 import '../services/permission_service.dart';
 import '../services/audio_scan_service.dart';
 import '../services/simple_audio_service.dart';
@@ -30,7 +31,19 @@ class MusicProvider extends ChangeNotifier {
   bool _isShuffleEnabled = false;
   RepeatMode _repeatMode = RepeatMode.off;
   
-  MusicAudioHandler? _audioHandler;
+  SimpleAudioService? _audioService;
+
+  // Helper method to convert RepeatMode to LoopMode
+  LoopMode _getLoopMode(RepeatMode repeatMode) {
+    switch (repeatMode) {
+      case RepeatMode.off:
+        return LoopMode.off;
+      case RepeatMode.one:
+        return LoopMode.one;
+      case RepeatMode.all:
+        return LoopMode.all;
+    }
+  }
 
   // Getters
   bool get isPlaying => _isPlaying;
@@ -61,14 +74,7 @@ class MusicProvider extends ChangeNotifier {
     PerformanceService.initialize();
 
     // Initialize audio service
-    _audioHandler = await AudioService.init(
-      builder: () => MusicAudioHandler(),
-      config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.offmusic.audio',
-        androidNotificationChannelName: 'OffMusic',
-        androidNotificationOngoing: true,
-      ),
-    );
+    _audioService = SimpleAudioService();
 
     // Listen to audio handler streams
     _setupAudioListeners();
@@ -86,17 +92,17 @@ class MusicProvider extends ChangeNotifier {
   }
 
   void _setupAudioListeners() {
-    _audioHandler?.playingStream.listen((playing) {
+    _audioService?.playingStream.listen((playing) {
       _isPlaying = playing;
       notifyListeners();
     });
 
-    _audioHandler?.positionStream.listen((position) {
+    _audioService?.positionStream.listen((position) {
       _position = position;
       notifyListeners();
     });
 
-    _audioHandler?.durationStream.listen((duration) {
+    _audioService?.durationStream.listen((duration) {
       _duration = duration ?? Duration.zero;
       notifyListeners();
     });
@@ -156,12 +162,12 @@ class MusicProvider extends ChangeNotifier {
   }
 
   Future<void> playPause() async {
-    if (_audioHandler == null) return;
-    
+    if (_audioService == null) return;
+
     if (_isPlaying) {
-      await _audioHandler!.pause();
+      await _audioService!.pause();
     } else {
-      await _audioHandler!.play();
+      await _audioService!.play();
     }
   }
 
@@ -177,35 +183,35 @@ class MusicProvider extends ChangeNotifier {
     final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
     _currentIndex = playlist.indexOf(song);
 
-    if (_audioHandler != null) {
-      await _audioHandler!.setAudioSource(song);
-      await _audioHandler!.setPlaylist(playlist, _currentIndex);
-      await _audioHandler!.setCustomRepeatMode(_repeatMode);
+    if (_audioService != null) {
+      await _audioService!.setAudioSource(song);
+      await _audioService!.setPlaylist(playlist, initialIndex: _currentIndex);
+      await _audioService!.setLoopMode(_getLoopMode(_repeatMode));
     }
 
     notifyListeners();
   }
 
   Future<void> seekTo(Duration position) async {
-    if (_audioHandler != null) {
-      await _audioHandler!.seek(position);
+    if (_audioService != null) {
+      await _audioService!.seek(position);
     }
   }
 
   Future<void> skipToNext() async {
-    if (_audioHandler != null && _currentIndex < _allSongs.length - 1) {
+    if (_audioService != null && _currentIndex < _allSongs.length - 1) {
       _currentIndex++;
       _currentSong = _allSongs[_currentIndex];
-      await _audioHandler!.skipToNext();
+      await _audioService!.seekToNext();
       notifyListeners();
     }
   }
 
   Future<void> skipToPrevious() async {
-    if (_audioHandler != null && _currentIndex > 0) {
+    if (_audioService != null && _currentIndex > 0) {
       _currentIndex--;
       _currentSong = _allSongs[_currentIndex];
-      await _audioHandler!.skipToPrevious();
+      await _audioService!.seekToPrevious();
       notifyListeners();
     }
   }
@@ -239,10 +245,10 @@ class MusicProvider extends ChangeNotifier {
       }
     }
 
-    // Update the audio handler with the new playlist
-    if (_audioHandler != null) {
-      _audioHandler!.setPlaylist(_currentPlaylist, _currentIndex);
-      _audioHandler!.setCustomRepeatMode(_repeatMode);
+    // Update the audio service with the new playlist
+    if (_audioService != null) {
+      _audioService!.setPlaylist(_currentPlaylist, initialIndex: _currentIndex);
+      _audioService!.setLoopMode(_getLoopMode(_repeatMode));
     }
 
     notifyListeners();
@@ -262,9 +268,9 @@ class MusicProvider extends ChangeNotifier {
         break;
     }
 
-    // Update the audio handler with the new repeat mode
-    if (_audioHandler != null) {
-      _audioHandler!.setCustomRepeatMode(_repeatMode);
+    // Update the audio service with the new repeat mode
+    if (_audioService != null) {
+      _audioService!.setLoopMode(_getLoopMode(_repeatMode));
     }
 
     notifyListeners();
@@ -272,28 +278,28 @@ class MusicProvider extends ChangeNotifier {
 
   /// Skip to next song with shuffle support
   Future<void> skipToNextWithShuffle() async {
-    if (_audioHandler == null) return;
+    if (_audioService == null) return;
 
     final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
 
     if (_currentIndex < playlist.length - 1) {
       _currentIndex++;
       _currentSong = playlist[_currentIndex];
-      await _audioHandler!.skipToNext();
+      await _audioService!.seekToNext();
       notifyListeners();
     }
   }
 
   /// Skip to previous song with shuffle support
   Future<void> skipToPreviousWithShuffle() async {
-    if (_audioHandler == null) return;
+    if (_audioService == null) return;
 
     final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
 
     if (_currentIndex > 0) {
       _currentIndex--;
       _currentSong = playlist[_currentIndex];
-      await _audioHandler!.skipToPrevious();
+      await _audioService!.seekToPrevious();
       notifyListeners();
     }
   }
@@ -353,8 +359,8 @@ class MusicProvider extends ChangeNotifier {
     // Clean up performance service
     PerformanceService.dispose();
 
-    // Clean up audio handler
-    _audioHandler?.stop();
+    // Clean up audio service
+    _audioService?.dispose();
 
     super.dispose();
   }
