@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_media_metadata/flutter_media_metadata.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/music_models.dart';
 
@@ -119,27 +118,39 @@ class AudioScanService {
     return _audioExtensions.contains(extension);
   }
 
-  /// Create SongModel from file
+  /// Create SongModel from file using basic file information
   static Future<SongModel?> _createSongFromFile(File file) async {
     try {
       final stat = await file.stat();
-      final metadata = await MetadataRetriever.fromFile(file);
+      final fileName = _getFileNameWithoutExtension(file.path);
+
+      // Extract basic info from filename (common patterns: "Artist - Title" or "Title")
+      String title = fileName;
+      String artist = 'Unknown Artist';
+
+      if (fileName.contains(' - ')) {
+        final parts = fileName.split(' - ');
+        if (parts.length >= 2) {
+          artist = parts[0].trim();
+          title = parts.sublist(1).join(' - ').trim();
+        }
+      }
 
       return SongModel(
         id: file.path.hashCode,
-        title: metadata.trackName ?? _getFileNameWithoutExtension(file.path),
-        artist: metadata.albumArtistName ?? metadata.authorName ?? 'Unknown Artist',
-        album: metadata.albumName ?? 'Unknown Album',
+        title: title,
+        artist: artist,
+        album: 'Unknown Album',
         data: file.path,
         uri: file.uri.toString(),
-        duration: metadata.trackDuration,
+        duration: null, // Will be determined by audio player
         size: stat.size,
-        displayName: _getFileNameWithoutExtension(file.path),
-        displayNameWOExt: _getFileNameWithoutExtension(file.path),
+        displayName: fileName,
+        displayNameWOExt: fileName,
         dateAdded: stat.modified.millisecondsSinceEpoch,
         dateModified: stat.modified.millisecondsSinceEpoch,
-        track: metadata.trackNumber?.toString(),
-        genre: metadata.genre,
+        track: null,
+        genre: null,
       );
     } catch (e) {
       debugPrint('Error creating song from file ${file.path}: $e');

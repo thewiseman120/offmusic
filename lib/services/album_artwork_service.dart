@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_media_metadata/flutter_media_metadata.dart';
 import '../models/music_models.dart';
 
 /// Shared service for album artwork extraction and caching
@@ -32,8 +31,9 @@ class AlbumArtworkService {
         return null;
       }
 
-      final metadata = await MetadataRetriever.fromFile(file);
-      final artwork = metadata.albumArt;
+      // For now, return null as we're not using flutter_media_metadata
+      // This will fall back to the beautiful asset album art images
+      final artwork = null;
       
       // Cache the result
       _artworkCache[cacheKey] = artwork;

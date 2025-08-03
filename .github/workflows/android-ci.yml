@@ -116,7 +116,7 @@ jobs:
             plugin_dir=$(dirname "$gradle_file")
             plugin_name=$(basename "$(dirname "$plugin_dir")")
 
-            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]] || [[ "$plugin_name" == *"media"* ]] || [[ "$plugin_name" == *"metadata"* ]] || [[ "$plugin_name" == *"path_provider"* ]] || [[ "$plugin_name" == *"shared_preferences"* ]] || [[ "$plugin_name" == *"file_picker"* ]]; then
+            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]] || [[ "$plugin_name" == *"path_provider"* ]] || [[ "$plugin_name" == *"shared_preferences"* ]] || [[ "$plugin_name" == *"file_picker"* ]]; then
               echo "Fixing plugin: $plugin_name"
 
               # Add namespace if missing
@@ -219,72 +219,6 @@ jobs:
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
           done
 
-          # Fix flutter_media_metadata plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*flutter_media_metadata*/android/build.gradle" | while read metadata_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$metadata_gradle")")")
-            echo "Completely rewriting flutter_media_metadata $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$metadata_gradle" "$metadata_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'com.alexmercerind.flutter_media_metadata'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'com.alexmercerind.flutter_media_metadata'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "}"
-            } > "$metadata_gradle"
-            echo "✅ Completely rewrote flutter_media_metadata $plugin_version build.gradle"
-
-            # Fix manifest if needed
-            manifest_file="$(dirname "$metadata_gradle")/src/main/AndroidManifest.xml"
-            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
-              sed -i 's/package="[^"]*"//g' "$manifest_file"
-              echo "✅ Fixed manifest for flutter_media_metadata $plugin_version"
-            fi
-          done
 
           # Fix just_audio plugin by completely rewriting build.gradle
           find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*just_audio*/android/build.gradle" | while read just_audio_gradle; do
