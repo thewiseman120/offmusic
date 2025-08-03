@@ -157,6 +157,55 @@ jobs:
             fi
           done
 
+          # Fix audio_session plugin kotlinOptions issue
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*audio_session*/android/build.gradle" | while read audio_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$audio_gradle")")")
+            echo "Applying kotlinOptions fix for audio_session $plugin_version..."
+
+            # Check if the file has the problematic kotlinOptions in compileOptions
+            if grep -A 10 "compileOptions" "$audio_gradle" | grep -q "kotlinOptions"; then
+              echo "Found kotlinOptions in compileOptions block, fixing..."
+
+              # Create a temporary file with the fix
+              temp_file=$(mktemp)
+
+              # Process the file to remove kotlinOptions from compileOptions and add it correctly
+              awk '
+                /compileOptions/ { in_compile_options = 1; print; next }
+                in_compile_options && /kotlinOptions/ {
+                  in_kotlin_options = 1
+                  kotlin_options_content = ""
+                  next
+                }
+                in_compile_options && in_kotlin_options && /}/ {
+                  in_kotlin_options = 0
+                  next
+                }
+                in_compile_options && in_kotlin_options {
+                  kotlin_options_content = kotlin_options_content $0 "\n"
+                  next
+                }
+                in_compile_options && /}/ {
+                  in_compile_options = 0
+                  print
+                  if (kotlin_options_content != "") {
+                    print "    kotlinOptions {"
+                    printf "%s", kotlin_options_content
+                    print "    }"
+                  }
+                  next
+                }
+                { print }
+              ' "$audio_gradle" > "$temp_file"
+
+              # Replace the original file
+              mv "$temp_file" "$audio_gradle"
+              echo "✅ Fixed audio_session $plugin_version kotlinOptions placement"
+            else
+              echo "No kotlinOptions issues found in audio_session $plugin_version"
+            fi
+          done
+
           # Special fix for audio_service plugin kotlinOptions issue (multiple versions)
           find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*audio_service*/android/build.gradle" | while read audio_gradle; do
             plugin_version=$(basename "$(dirname "$(dirname "$audio_gradle")")")
@@ -274,3 +323,5 @@ jobs:
             echo "Debug APK size: $(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)"
             echo "Debug APK path: build/app/outputs/flutter-apk/app-debug.apk"
           fi
+
+
