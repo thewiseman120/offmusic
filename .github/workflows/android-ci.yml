@@ -212,6 +212,8 @@ jobs:
               echo ""
               echo "dependencies {"
               echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "    implementation 'androidx.media:media:1.6.0'"
+              echo "    implementation 'androidx.core:core:1.10.1'"
               echo "}"
             } > "$audio_gradle"
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
