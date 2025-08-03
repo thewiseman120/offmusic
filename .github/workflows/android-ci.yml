@@ -160,99 +160,61 @@ jobs:
           # Fix audio_session plugin kotlinOptions issue
           find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*audio_session*/android/build.gradle" | while read audio_gradle; do
             plugin_version=$(basename "$(dirname "$(dirname "$audio_gradle")")")
-            echo "Applying kotlinOptions fix for audio_session $plugin_version..."
+            echo "Applying comprehensive fix for audio_session $plugin_version..."
 
-            # Check if the file has the problematic kotlinOptions in compileOptions
-            if grep -A 10 "compileOptions" "$audio_gradle" | grep -q "kotlinOptions"; then
-              echo "Found kotlinOptions in compileOptions block, fixing..."
+            # Create a backup
+            cp "$audio_gradle" "$audio_gradle.backup"
 
-              # Create a temporary file with the fix
-              temp_file=$(mktemp)
+            # Remove all kotlinOptions blocks and fix the structure
+            cat > "$audio_gradle" << 'GRADLE_EOF'
+            group 'com.ryanheise.audio_session'
+            version '1.0-SNAPSHOT'
 
-              # Process the file to remove kotlinOptions from compileOptions and add it correctly
-              awk '
-                /compileOptions/ { in_compile_options = 1; print; next }
-                in_compile_options && /kotlinOptions/ {
-                  in_kotlin_options = 1
-                  kotlin_options_content = ""
-                  next
+            buildscript {
+                ext.kotlin_version = '1.9.10'
+                repositories {
+                    google()
+                    mavenCentral()
                 }
-                in_compile_options && in_kotlin_options && /}/ {
-                  in_kotlin_options = 0
-                  next
+                dependencies {
+                    classpath 'com.android.tools.build:gradle:8.1.0'
+                    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
                 }
-                in_compile_options && in_kotlin_options {
-                  kotlin_options_content = kotlin_options_content $0 "\n"
-                  next
-                }
-                in_compile_options && /}/ {
-                  in_compile_options = 0
-                  print
-                  if (kotlin_options_content != "") {
-                    print "    kotlinOptions {"
-                    printf "%s", kotlin_options_content
-                    print "    }"
-                  }
-                  next
-                }
-                { print }
-              ' "$audio_gradle" > "$temp_file"
+            }
 
-              # Replace the original file
-              mv "$temp_file" "$audio_gradle"
-              echo "✅ Fixed audio_session $plugin_version kotlinOptions placement"
-            else
-              echo "No kotlinOptions issues found in audio_session $plugin_version"
-            fi
-          done
-
-          # Special fix for audio_service plugin kotlinOptions issue (multiple versions)
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*audio_service*/android/build.gradle" | while read audio_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$audio_gradle")")")
-            echo "Applying special fix for $plugin_version..."
-
-            # Check if the file has the problematic kotlinOptions in compileOptions
-            if grep -A 10 "compileOptions" "$audio_gradle" | grep -q "kotlinOptions"; then
-              echo "Found kotlinOptions in compileOptions block, fixing..."
-
-              # Create a temporary file with the fix
-              temp_file=$(mktemp)
-
-              # Process the file to remove kotlinOptions from compileOptions and add it correctly
-              awk '
-                /compileOptions/ { in_compile_options = 1; print; next }
-                in_compile_options && /kotlinOptions/ {
-                  in_kotlin_options = 1
-                  kotlin_options_content = ""
-                  next
+            rootProject.allprojects {
+                repositories {
+                    google()
+                    mavenCentral()
                 }
-                in_compile_options && in_kotlin_options && /}/ {
-                  in_kotlin_options = 0
-                  next
-                }
-                in_compile_options && in_kotlin_options {
-                  kotlin_options_content = kotlin_options_content $0 "\n"
-                  next
-                }
-                in_compile_options && /}/ {
-                  in_compile_options = 0
-                  print
-                  if (kotlin_options_content != "") {
-                    print "    kotlinOptions {"
-                    printf "%s", kotlin_options_content
-                    print "    }"
-                  }
-                  next
-                }
-                { print }
-              ' "$audio_gradle" > "$temp_file"
+            }
 
-              # Replace the original file
-              mv "$temp_file" "$audio_gradle"
-              echo "✅ Fixed $plugin_version kotlinOptions placement"
-            else
-              echo "No kotlinOptions issues found in $plugin_version"
-            fi
+            apply plugin: 'com.android.library'
+            apply plugin: 'kotlin-android'
+
+            android {
+                namespace 'com.ryanheise.audio_session'
+                compileSdkVersion 34
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+                kotlinOptions {
+                    jvmTarget = "17"
+                }
+                sourceSets {
+                    main.java.srcDirs += 'src/main/kotlin'
+                }
+                defaultConfig {
+                    minSdkVersion 16
+                }
+            }
+
+            dependencies {
+                implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+            }
+            GRADLE_EOF
+            echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
           done
 
       - name: 🔍 Analyze code
@@ -323,5 +285,11 @@ jobs:
             echo "Debug APK size: $(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)"
             echo "Debug APK path: build/app/outputs/flutter-apk/app-debug.apk"
           fi
+
+
+
+
+
+
 
 
