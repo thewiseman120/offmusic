@@ -1,8 +1,11 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/music_provider.dart';
 import '../theme/app_theme.dart';
+import '../models/music_models.dart';
+import '../services/album_artwork_service.dart';
 
 class NowPlayingScreen extends StatefulWidget {
   const NowPlayingScreen({super.key});
@@ -58,7 +61,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     _currentAlbumArt = getRandomAlbumArt();
   }
 
-  Widget albumArtWidget(BuildContext context, dynamic embeddedArtBytes) {
+  /// Get album artwork for a song using the shared artwork service
+  Future<Uint8List?> _getAlbumArtwork(SongModel song) async {
+    return await AlbumArtworkService().getAlbumArtwork(song);
+  }
+
+  Widget albumArtWidget(BuildContext context, Uint8List? embeddedArtBytes) {
     final albumArtSize = AppTheme.getResponsiveAlbumArtSize(context);
     final borderRadius = AppTheme.isTabletOrLarger(context) ? 24.0 : 20.0;
 
@@ -160,7 +168,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                       ),
                                     ],
                                   ),
-                                  child: albumArtWidget(context, null),
+                                  child: FutureBuilder<Uint8List?>(
+                                    future: _getAlbumArtwork(currentSong),
+                                    builder: (context, snapshot) {
+                                      return albumArtWidget(context, snapshot.data);
+                                    },
+                                  ),
                                 ),
                               );
                             },
