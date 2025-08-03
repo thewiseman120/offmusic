@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/music_models.dart';
+import 'audio_scan_service.dart';
 
 /// Service for optimizing performance with large music libraries
 class PerformanceService {
@@ -68,20 +69,10 @@ class PerformanceService {
     final searchQuery = params['searchQuery'] as String?;
     final sortType = params['sortType'] as SongSortType;
 
-    List<SongModel> songs = await OnAudioQuery.querySongs(
-      sortType: sortType,
-      orderType: OrderType.asc,
-      uriType: UriType.external,
-      ignoreCase: true,
-    );
-    
-    // Filter out short songs and system sounds
-    songs = songs.where((song) =>
-      song.duration != null &&
-      song.duration! > 30000 &&
-      song.size != null &&
-      song.size! > 1024 * 1024
-    ).toList();
+    // Use AudioScanService instead of OnAudioQuery
+    List<SongModel> songs = await AudioScanService.scanAudioFiles();
+
+    // Songs are already filtered in AudioScanService
 
     // Apply search filter if provided
     if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -110,11 +101,9 @@ class PerformanceService {
     }
     
     try {
-      final artwork = await OnAudioQuery.queryArtwork(
-        songId,
-        ArtworkType.audio,
-        quality: 50, // Reduced quality for better performance
-      );
+      // For now, return null as artwork functionality is not implemented
+      // Can be implemented later using flutter_media_metadata or other methods
+      final artwork = null;
       
       // Cache the result
       _artworkCache[songId] = artwork;

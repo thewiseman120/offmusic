@@ -1,8 +1,6 @@
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/music_models.dart';
 import '../providers/music_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -60,7 +58,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     _currentAlbumArt = getRandomAlbumArt();
   }
 
-  Widget albumArtWidget(BuildContext context, Uint8List? embeddedArtBytes) {
+  Widget albumArtWidget(BuildContext context, dynamic embeddedArtBytes) {
     final albumArtSize = AppTheme.getResponsiveAlbumArtSize(context);
     final borderRadius = AppTheme.isTabletOrLarger(context) ? 24.0 : 20.0;
 
@@ -162,15 +160,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                       ),
                                     ],
                                   ),
-                                  child: FutureBuilder<Uint8List?>(
-                                    future: OnAudioQuery.queryArtwork(
-                                      currentSong.id,
-                                      ArtworkType.audio,
-                                    ),
-                                    builder: (context, snapshot) {
-                                      return albumArtWidget(context, snapshot.data);
-                                    },
-                                  ),
+                                  child: albumArtWidget(context, null),
                                 ),
                               );
                             },

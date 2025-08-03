@@ -1,8 +1,6 @@
 // Alternative music models to replace on_audio_query models
 // This provides compatibility while we resolve the plugin issues
 
-import 'dart:typed_data';
-
 class SongModel {
   final int id;
   final String title;
@@ -209,45 +207,5 @@ enum UriType {
   internal,
 }
 
-// Mock OnAudioQuery class for compatibility
-class OnAudioQuery {
-  static Future<Uint8List?> queryArtwork(
-    int id,
-    ArtworkType type, {
-    int? size,
-    int? quality,
-  }) async {
-    // Return null for now - can be implemented with alternative methods
-    return null;
-  }
-
-  static Future<List<SongModel>> querySongs({
-    SongSortType? sortType,
-    OrderType? orderType,
-    UriType? uriType,
-    bool? ignoreCase,
-  }) async {
-    // Return empty list for now - can be implemented with file system scanning
-    return [];
-  }
-
-  static Future<List<ArtistModel>> queryArtists({
-    ArtistSortType? sortType,
-    OrderType? orderType,
-    UriType? uriType,
-    bool? ignoreCase,
-  }) async {
-    // Return empty list for now
-    return [];
-  }
-
-  static Future<List<AlbumModel>> queryAlbums({
-    AlbumSortType? sortType,
-    OrderType? orderType,
-    UriType? uriType,
-    bool? ignoreCase,
-  }) async {
-    // Return empty list for now
-    return [];
-  }
-}
+// Note: OnAudioQuery functionality is now implemented in AudioScanService
+// using flutter_media_metadata and file system scanning for better compatibility

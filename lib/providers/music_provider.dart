@@ -162,34 +162,58 @@ class MusicProvider extends ChangeNotifier {
   }
 
   Future<void> playPause() async {
-    if (_audioService == null) return;
+    try {
+      if (_audioService == null) {
+        debugPrint('Audio service not initialized');
+        return;
+      }
 
-    if (_isPlaying) {
-      await _audioService!.pause();
-    } else {
-      await _audioService!.play();
+      if (_isPlaying) {
+        await _audioService!.pause();
+      } else {
+        await _audioService!.play();
+      }
+    } catch (e) {
+      debugPrint('Error in playPause: $e');
+      // Reset playing state on error
+      _isPlaying = false;
+      notifyListeners();
     }
   }
 
   Future<void> setCurrentSong(SongModel song) async {
-    _currentSong = song;
+    try {
+      _currentSong = song;
 
-    // Initialize current playlist if empty
-    if (_currentPlaylist.isEmpty) {
-      _currentPlaylist = List.from(_allSongs);
+      // Initialize current playlist if empty
+      if (_currentPlaylist.isEmpty) {
+        _currentPlaylist = List.from(_allSongs);
+      }
+
+      // Find the song in the appropriate playlist
+      final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
+      _currentIndex = playlist.indexOf(song);
+
+      if (_currentIndex == -1) {
+        debugPrint('Song not found in playlist: ${song.title}');
+        _currentIndex = 0;
+      }
+
+      if (_audioService != null) {
+        await _audioService!.setAudioSource(song);
+        await _audioService!.setPlaylist(playlist, initialIndex: _currentIndex);
+        await _audioService!.setLoopMode(_getLoopMode(_repeatMode));
+      } else {
+        debugPrint('Audio service not initialized when setting current song');
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting current song ${song.title}: $e');
+      // Reset state on error
+      _isPlaying = false;
+      notifyListeners();
     }
-
-    // Find the song in the appropriate playlist
-    final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
-    _currentIndex = playlist.indexOf(song);
-
-    if (_audioService != null) {
-      await _audioService!.setAudioSource(song);
-      await _audioService!.setPlaylist(playlist, initialIndex: _currentIndex);
-      await _audioService!.setLoopMode(_getLoopMode(_repeatMode));
-    }
-
-    notifyListeners();
   }
 
   Future<void> seekTo(Duration position) async {
