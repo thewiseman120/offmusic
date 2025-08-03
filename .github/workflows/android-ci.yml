@@ -116,7 +116,7 @@ jobs:
             plugin_dir=$(dirname "$gradle_file")
             plugin_name=$(basename "$(dirname "$plugin_dir")")
 
-            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]]; then
+            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]] || [[ "$plugin_name" == *"media"* ]] || [[ "$plugin_name" == *"metadata"* ]]; then
               echo "Fixing plugin: $plugin_name"
 
               # Add namespace if missing
@@ -215,6 +215,41 @@ jobs:
               echo "}"
             } > "$audio_gradle"
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
+          done
+
+          # Fix flutter_media_metadata plugin namespace issue
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*flutter_media_metadata*/android/build.gradle" | while read metadata_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$metadata_gradle")")")
+            echo "Fixing flutter_media_metadata $plugin_version namespace..."
+
+            # Add namespace if missing
+            if ! grep -q "namespace" "$metadata_gradle"; then
+              sed -i '/android {/a\    namespace "com.alexmercerind.flutter_media_metadata"' "$metadata_gradle"
+              echo "✅ Added namespace to flutter_media_metadata $plugin_version"
+            fi
+
+            # Ensure JVM target compatibility
+            if ! grep -q "jvmTarget.*17" "$metadata_gradle"; then
+              # Add compileOptions if missing
+              if ! grep -q "compileOptions" "$metadata_gradle"; then
+                sed -i '/namespace/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$metadata_gradle"
+              fi
+
+              # Add kotlinOptions if missing
+              if ! grep -q "kotlinOptions" "$metadata_gradle"; then
+                sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$metadata_gradle"
+              else
+                sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$metadata_gradle"
+              fi
+              echo "✅ Fixed JVM target for flutter_media_metadata $plugin_version"
+            fi
+
+            # Fix manifest if needed
+            manifest_file="$(dirname "$metadata_gradle")/src/main/AndroidManifest.xml"
+            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
+              sed -i 's/package="[^"]*"//g' "$manifest_file"
+              echo "✅ Fixed manifest for flutter_media_metadata $plugin_version"
+            fi
           done
 
       - name: 🔍 Analyze code
