@@ -1,9 +1,10 @@
 import 'package:just_audio/just_audio.dart';
-import 'package:audio_service/audio_service.dart';
+// import 'package:audio_service/audio_service.dart';  // Temporarily disabled
 import '../models/music_models.dart';
 import '../providers/music_provider.dart';
 
-class MusicAudioHandler extends BaseAudioHandler {
+// Simplified audio handler without audio_service dependency
+class MusicAudioHandler {
   final AudioPlayer _player = AudioPlayer();
   
   MusicAudioHandler() {
@@ -63,19 +64,9 @@ class MusicAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() => _player.seekToPrevious();
 
   Future<void> setAudioSource(SongModel song) async {
-    final mediaItem = MediaItem(
-      id: song.id.toString(),
-      album: song.album,
-      title: song.title,
-      artist: song.artist,
-      duration: Duration(milliseconds: song.duration ?? 0),
-      artUri: song.uri != null ? Uri.parse('file://${song.uri}') : null,
-    );
-    
-    this.mediaItem.add(mediaItem);
-    
+    // Simplified without MediaItem and audio_service
     await _player.setAudioSource(
-      AudioSource.uri(Uri.parse(song.uri!)),
+      AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')),
     );
   }
 

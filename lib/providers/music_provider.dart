@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/music_models.dart';
-import 'package:audio_service/audio_service.dart';
+// import 'package:audio_service/audio_service.dart';  // Temporarily disabled
 import '../services/permission_service.dart';
 import '../services/audio_scan_service.dart';
-import '../services/audio_service.dart';
+import '../services/simple_audio_service.dart';
 import '../services/storage_service.dart';
 import '../services/performance_service.dart';
 
