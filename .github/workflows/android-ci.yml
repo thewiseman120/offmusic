@@ -126,14 +126,20 @@ jobs:
                 echo "✅ Fixed namespace for $plugin_name"
               fi
 
-              # Fix JVM target compatibility
+              # Fix JVM target compatibility and kotlinOptions issues
               if ! grep -q "jvmTarget.*17" "$gradle_file"; then
                 # Add compileOptions if missing
                 if ! grep -q "compileOptions" "$gradle_file"; then
                   sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$gradle_file"
                 fi
 
-                # Add kotlinOptions if missing
+                # Fix kotlinOptions placement - should be in android block, not compileOptions
+                if grep -q "compileOptions.*kotlinOptions" "$gradle_file"; then
+                  # Remove kotlinOptions from compileOptions
+                  sed -i '/compileOptions/,/}/ { /kotlinOptions/,/}/d; }' "$gradle_file"
+                fi
+
+                # Add kotlinOptions correctly in android block
                 if ! grep -q "kotlinOptions" "$gradle_file"; then
                   sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$gradle_file"
                 else
@@ -150,6 +156,24 @@ jobs:
               fi
             fi
           done
+
+          # Special fix for audio_service plugin kotlinOptions issue
+          AUDIO_SERVICE_GRADLE="$HOME/.pub-cache/hosted/pub.dev/audio_service-0.18.18/android/build.gradle"
+          if [ -f "$AUDIO_SERVICE_GRADLE" ]; then
+            echo "Applying special fix for audio_service plugin..."
+
+            # Remove kotlinOptions from compileOptions block
+            sed -i '/compileOptions/,/}/ {
+              /kotlinOptions/,/}/d
+            }' "$AUDIO_SERVICE_GRADLE"
+
+            # Add kotlinOptions correctly in android block
+            if ! grep -q "kotlinOptions" "$AUDIO_SERVICE_GRADLE"; then
+              sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "1.8"\n    }' "$AUDIO_SERVICE_GRADLE"
+            fi
+
+            echo "✅ Fixed audio_service kotlinOptions placement"
+          fi
 
       - name: 🔍 Analyze code
         run: flutter analyze
