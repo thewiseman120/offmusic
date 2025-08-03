@@ -67,7 +67,7 @@ class PerformanceService {
     final page = params['page'] as int;
     final pageSize = params['pageSize'] as int;
     final searchQuery = params['searchQuery'] as String?;
-    final sortType = params['sortType'] as SongSortType;
+    // Note: sortType is handled internally by AudioScanService
 
     // Use AudioScanService instead of OnAudioQuery
     List<SongModel> songs = await AudioScanService.scanAudioFiles();
