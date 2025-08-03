@@ -217,10 +217,20 @@ jobs:
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
           done
 
-          # Fix flutter_media_metadata plugin namespace issue
+          # Fix flutter_media_metadata plugin namespace and kotlinOptions issues
           find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*flutter_media_metadata*/android/build.gradle" | while read metadata_gradle; do
             plugin_version=$(basename "$(dirname "$(dirname "$metadata_gradle")")")
-            echo "Fixing flutter_media_metadata $plugin_version namespace..."
+            echo "Fixing flutter_media_metadata $plugin_version..."
+
+            # Create a backup
+            cp "$metadata_gradle" "$metadata_gradle.backup"
+
+            # Fix kotlinOptions placement - should be in android block, not compileOptions
+            if grep -q "compileOptions.*kotlinOptions" "$metadata_gradle"; then
+              echo "Fixing kotlinOptions placement in compileOptions block..."
+              # Remove kotlinOptions from compileOptions
+              sed -i '/compileOptions/,/}/ { /kotlinOptions/,/}/d; }' "$metadata_gradle"
+            fi
 
             # Add namespace if missing
             if ! grep -q "namespace" "$metadata_gradle"; then
@@ -235,7 +245,7 @@ jobs:
                 sed -i '/namespace/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$metadata_gradle"
               fi
 
-              # Add kotlinOptions if missing
+              # Add kotlinOptions in android block (not in compileOptions)
               if ! grep -q "kotlinOptions" "$metadata_gradle"; then
                 sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$metadata_gradle"
               else
