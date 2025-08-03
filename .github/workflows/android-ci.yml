@@ -353,36 +353,193 @@ jobs:
             fi
           done
 
-          # Fix other common plugins that might have kotlinOptions issues
-          for plugin_pattern in "path_provider" "shared_preferences" "file_picker"; do
-            find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*${plugin_pattern}*/android/build.gradle" | while read plugin_gradle; do
-              plugin_version=$(basename "$(dirname "$(dirname "$plugin_gradle")")")
-              echo "Checking and fixing $plugin_pattern $plugin_version if needed..."
+          # Fix file_picker plugin by completely rewriting build.gradle
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*file_picker*/android/build.gradle" | while read file_picker_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$file_picker_gradle")")")
+            echo "Completely rewriting file_picker $plugin_version build.gradle..."
 
-              # Check if the plugin has kotlinOptions issues
-              if grep -q "kotlinOptions" "$plugin_gradle" && grep -q "compileOptions.*kotlinOptions\|kotlinOptions.*compileOptions" "$plugin_gradle"; then
-                echo "Found kotlinOptions issue in $plugin_pattern, fixing..."
+            # Create a backup
+            cp "$file_picker_gradle" "$file_picker_gradle.backup"
 
-                # Create a backup
-                cp "$plugin_gradle" "$plugin_gradle.backup"
+            # Completely rewrite the build.gradle file with correct structure
+            {
+              echo "group 'com.mr.flutter.plugin.filepicker'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'com.mr.flutter.plugin.filepicker'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "    implementation 'androidx.core:core:1.10.1'"
+              echo "    implementation 'androidx.documentfile:documentfile:1.0.1'"
+              echo "}"
+            } > "$file_picker_gradle"
+            echo "✅ Completely rewrote file_picker $plugin_version build.gradle"
 
-                # Remove kotlinOptions from wrong locations
-                sed -i '/compileOptions/,/}/ { /kotlinOptions/,/}/d; }' "$plugin_gradle"
+            # Fix manifest if needed
+            manifest_file="$(dirname "$file_picker_gradle")/src/main/AndroidManifest.xml"
+            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
+              sed -i 's/package="[^"]*"//g' "$manifest_file"
+              echo "✅ Fixed manifest for file_picker $plugin_version"
+            fi
+          done
 
-                # Add proper kotlinOptions in android block if missing
-                if ! grep -q "kotlinOptions" "$plugin_gradle"; then
-                  sed -i '/android {/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$plugin_gradle"
-                fi
+          # Fix path_provider plugin by completely rewriting build.gradle
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*path_provider*/android/build.gradle" | while read path_provider_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$path_provider_gradle")")")
+            echo "Completely rewriting path_provider $plugin_version build.gradle..."
 
-                # Ensure namespace exists
-                if ! grep -q "namespace" "$plugin_gradle"; then
-                  namespace="com.example.${plugin_pattern}"
-                  sed -i "/android {/a\\    namespace \"$namespace\"" "$plugin_gradle"
-                fi
+            # Create a backup
+            cp "$path_provider_gradle" "$path_provider_gradle.backup"
 
-                echo "✅ Fixed kotlinOptions for $plugin_pattern $plugin_version"
-              fi
-            done
+            # Completely rewrite the build.gradle file with correct structure
+            {
+              echo "group 'io.flutter.plugins.pathprovider'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'io.flutter.plugins.pathprovider'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "}"
+            } > "$path_provider_gradle"
+            echo "✅ Completely rewrote path_provider $plugin_version build.gradle"
+          done
+
+          # Fix shared_preferences plugin by completely rewriting build.gradle
+          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*shared_preferences*/android/build.gradle" | while read shared_prefs_gradle; do
+            plugin_version=$(basename "$(dirname "$(dirname "$shared_prefs_gradle")")")
+            echo "Completely rewriting shared_preferences $plugin_version build.gradle..."
+
+            # Create a backup
+            cp "$shared_prefs_gradle" "$shared_prefs_gradle.backup"
+
+            # Completely rewrite the build.gradle file with correct structure
+            {
+              echo "group 'io.flutter.plugins.sharedpreferences'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'io.flutter.plugins.sharedpreferences'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "}"
+            } > "$shared_prefs_gradle"
+            echo "✅ Completely rewrote shared_preferences $plugin_version build.gradle"
           done
 
       - name: 🔍 Analyze code
