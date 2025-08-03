@@ -166,54 +166,54 @@ jobs:
             cp "$audio_gradle" "$audio_gradle.backup"
 
             # Remove all kotlinOptions blocks and fix the structure
-            cat > "$audio_gradle" << 'GRADLE_EOF'
-group 'com.ryanheise.audio_session'
-version '1.0-SNAPSHOT'
-
-buildscript {
-    ext.kotlin_version = '1.9.10'
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
-rootProject.allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-
-android {
-    namespace 'com.ryanheise.audio_session'
-    compileSdkVersion 34
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-    defaultConfig {
-        minSdkVersion 16
-    }
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-}
-GRADLE_EOF
+            {
+              echo "group 'com.ryanheise.audio_session'"
+              echo "version '1.0-SNAPSHOT'"
+              echo ""
+              echo "buildscript {"
+              echo "    ext.kotlin_version = '1.9.10'"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "    dependencies {"
+              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
+              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "rootProject.allprojects {"
+              echo "    repositories {"
+              echo "        google()"
+              echo "        mavenCentral()"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "apply plugin: 'com.android.library'"
+              echo "apply plugin: 'kotlin-android'"
+              echo ""
+              echo "android {"
+              echo "    namespace 'com.ryanheise.audio_session'"
+              echo "    compileSdkVersion 34"
+              echo "    compileOptions {"
+              echo "        sourceCompatibility JavaVersion.VERSION_17"
+              echo "        targetCompatibility JavaVersion.VERSION_17"
+              echo "    }"
+              echo "    kotlinOptions {"
+              echo "        jvmTarget = \"17\""
+              echo "    }"
+              echo "    sourceSets {"
+              echo "        main.java.srcDirs += 'src/main/kotlin'"
+              echo "    }"
+              echo "    defaultConfig {"
+              echo "        minSdkVersion 16"
+              echo "    }"
+              echo "}"
+              echo ""
+              echo "dependencies {"
+              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
+              echo "}"
+            } > "$audio_gradle"
             echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
           done
 
