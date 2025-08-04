@@ -102,12 +102,14 @@ class SimpleAudioService {
         throw Exception('No valid audio sources found in playlist');
       }
 
-      final audioSources = validSongs
-          .map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')))
-          .toList();
+      final playlist = ConcatenatingAudioSource(
+        children: validSongs
+            .map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')))
+            .toList(),
+      );
 
       final safeIndex = initialIndex.clamp(0, validSongs.length - 1);
-      await _player.setAudioSources(audioSources, initialIndex: safeIndex);
+      await _player.setAudioSource(playlist, initialIndex: safeIndex);
     } catch (e) {
       debugPrint('Error setting playlist: $e');
       rethrow;
