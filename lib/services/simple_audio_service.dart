@@ -90,7 +90,7 @@ class SimpleAudioService {
     }
   }
 
-  // Set playlist with error handling
+  // Set playlist with error handling (updated for just_audio >=0.9.36)
   Future<void> setPlaylist(List<SongModel> songs, {int initialIndex = 0}) async {
     try {
       if (songs.isEmpty) {
@@ -102,14 +102,12 @@ class SimpleAudioService {
         throw Exception('No valid audio sources found in playlist');
       }
 
-      final playlist = ConcatenatingAudioSource(
-        children: validSongs
-            .map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')))
-            .toList(),
-      );
+      final audioSources = validSongs
+          .map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')))
+          .toList();
 
       final safeIndex = initialIndex.clamp(0, validSongs.length - 1);
-      await _player.setAudioSource(playlist, initialIndex: safeIndex);
+      await _player.setAudioSources(audioSources, initialIndex: safeIndex);
     } catch (e) {
       debugPrint('Error setting playlist: $e');
       rethrow;
