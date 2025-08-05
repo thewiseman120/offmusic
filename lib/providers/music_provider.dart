@@ -89,11 +89,9 @@ class MusicProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _audioService?.mediaItemStream.listen((mediaItem) {
-      if (mediaItem != null) {
-        _duration = mediaItem.duration ?? Duration.zero;
-        notifyListeners();
-      }
+    _audioService?.durationStream.listen((duration) {
+      _duration = duration ?? Duration.zero;
+      notifyListeners();
     });
   }
 
