@@ -102,6 +102,7 @@ class SimpleAudioService {
         throw Exception('No valid audio sources found in playlist');
       }
 
+      // ignore: deprecated_member_use
       final playlist = ConcatenatingAudioSource(
         children: validSongs
             .map((song) => AudioSource.uri(Uri.parse(song.uri ?? song.data ?? '')))
