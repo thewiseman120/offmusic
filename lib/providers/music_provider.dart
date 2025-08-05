@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../models/music_models.dart';
-// import 'package:audio_service/audio_service.dart';  // Temporarily disabled
-import 'package:just_audio/just_audio.dart';
 import '../services/permission_service.dart';
 import '../services/audio_scan_service.dart';
-import '../services/simple_audio_service.dart';
+import '../services/background_audio_service.dart';
 import '../services/storage_service.dart';
 import '../services/performance_service.dart';
 
@@ -31,19 +29,7 @@ class MusicProvider extends ChangeNotifier {
   bool _isShuffleEnabled = false;
   RepeatMode _repeatMode = RepeatMode.off;
   
-  SimpleAudioService? _audioService;
-
-  // Helper method to convert RepeatMode to LoopMode
-  LoopMode _getLoopMode(RepeatMode repeatMode) {
-    switch (repeatMode) {
-      case RepeatMode.off:
-        return LoopMode.off;
-      case RepeatMode.one:
-        return LoopMode.one;
-      case RepeatMode.all:
-        return LoopMode.all;
-    }
-  }
+  BackgroundAudioService? _audioService;
 
   // Getters
   bool get isPlaying => _isPlaying;
@@ -73,8 +59,9 @@ class MusicProvider extends ChangeNotifier {
     // Initialize performance service
     PerformanceService.initialize();
 
-    // Initialize audio service
-    _audioService = SimpleAudioService();
+    // Initialize background audio service
+    _audioService = BackgroundAudioService();
+    await _audioService?.initialize();
 
     // Listen to audio handler streams
     _setupAudioListeners();
@@ -102,9 +89,11 @@ class MusicProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _audioService?.durationStream.listen((duration) {
-      _duration = duration ?? Duration.zero;
-      notifyListeners();
+    _audioService?.mediaItemStream.listen((mediaItem) {
+      if (mediaItem != null) {
+        _duration = mediaItem.duration ?? Duration.zero;
+        notifyListeners();
+      }
     });
   }
 
@@ -126,41 +115,108 @@ class MusicProvider extends ChangeNotifier {
 
   /// Search songs with performance optimization
   Future<List<SongModel>> searchSongs(String query) async {
-    if (query.isEmpty) return _allSongs;
-
     try {
-      return await PerformanceService.searchSongs(query);
+      if (query.isEmpty) return _allSongs;
+
+      final lowercaseQuery = query.toLowerCase();
+      return _allSongs.where((song) =>
+        song.title.toLowerCase().contains(lowercaseQuery) ||
+        song.artist.toLowerCase().contains(lowercaseQuery) ||
+        song.album.toLowerCase().contains(lowercaseQuery)
+      ).toList();
     } catch (e) {
       debugPrint('Error searching songs: $e');
-      // Fallback to local search
-      return _allSongs.where((song) =>
-        song.title.toLowerCase().contains(query.toLowerCase()) ||
-        song.artist.toLowerCase().contains(query.toLowerCase()) ||
-        song.album.toLowerCase().contains(query.toLowerCase())
-      ).toList();
+      return [];
     }
   }
 
-  /// Get songs by artist with performance optimization
+  /// Get songs by artist
   Future<List<SongModel>> getSongsByArtist(int artistId) async {
     try {
       return await AudioScanService.getSongsByArtist(artistId);
     } catch (e) {
       debugPrint('Error getting songs by artist: $e');
-      return _allSongs.where((song) => song.artistId == artistId).toList();
+      return [];
     }
   }
 
-  /// Get songs by album with performance optimization
+  /// Get songs by album
   Future<List<SongModel>> getSongsByAlbum(int albumId) async {
     try {
       return await AudioScanService.getSongsByAlbum(albumId);
     } catch (e) {
       debugPrint('Error getting songs by album: $e');
-      return _allSongs.where((song) => song.albumId == albumId).toList();
+      return [];
     }
   }
 
+  /// Set current song and play it
+  Future<void> setCurrentSong(SongModel song) async {
+    try {
+      _currentSong = song;
+      _currentIndex = _allSongs.indexWhere((s) => s.id == song.id);
+      if (_currentIndex == -1) {
+        _currentIndex = 0;
+      }
+
+      if (_audioService != null) {
+        await _audioService!.playSong(song);
+      } else {
+        debugPrint('Audio service not initialized when setting current song');
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting current song ${song.title}: $e');
+      // Reset state on error
+      _isPlaying = false;
+      notifyListeners();
+    }
+  }
+
+  /// Set playlist and play from specific index
+  Future<void> setPlaylist(List<SongModel> songs, {int initialIndex = 0}) async {
+    try {
+      _currentPlaylist = songs;
+      _currentIndex = initialIndex.clamp(0, songs.length - 1);
+      _currentSong = songs[_currentIndex];
+
+      if (_audioService != null) {
+        await _audioService!.setPlaylist(songs, initialIndex: _currentIndex);
+      } else {
+        debugPrint('Audio service not initialized when setting playlist');
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting playlist: $e');
+      _isPlaying = false;
+      notifyListeners();
+    }
+  }
+
+  /// Play current song
+  Future<void> play() async {
+    if (_audioService != null) {
+      await _audioService!.play();
+    }
+  }
+
+  /// Pause current song
+  Future<void> pause() async {
+    if (_audioService != null) {
+      await _audioService!.pause();
+    }
+  }
+
+  /// Stop playback
+  Future<void> stop() async {
+    if (_audioService != null) {
+      await _audioService!.stop();
+    }
+  }
+
+  /// Play or pause current song
   Future<void> playPause() async {
     try {
       if (_audioService == null) {
@@ -176,41 +232,6 @@ class MusicProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error in playPause: $e');
       // Reset playing state on error
-      _isPlaying = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> setCurrentSong(SongModel song) async {
-    try {
-      _currentSong = song;
-
-      // Initialize current playlist if empty
-      if (_currentPlaylist.isEmpty) {
-        _currentPlaylist = List.from(_allSongs);
-      }
-
-      // Find the song in the appropriate playlist
-      final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
-      _currentIndex = playlist.indexOf(song);
-
-      if (_currentIndex == -1) {
-        debugPrint('Song not found in playlist: ${song.title}');
-        _currentIndex = 0;
-      }
-
-      if (_audioService != null) {
-        await _audioService!.setAudioSource(song);
-        await _audioService!.setPlaylist(playlist, initialIndex: _currentIndex);
-        await _audioService!.setLoopMode(_getLoopMode(_repeatMode));
-      } else {
-        debugPrint('Audio service not initialized when setting current song');
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error setting current song ${song.title}: $e');
-      // Reset state on error
       _isPlaying = false;
       notifyListeners();
     }
@@ -272,7 +293,6 @@ class MusicProvider extends ChangeNotifier {
     // Update the audio service with the new playlist
     if (_audioService != null) {
       _audioService!.setPlaylist(_currentPlaylist, initialIndex: _currentIndex);
-      _audioService!.setLoopMode(_getLoopMode(_repeatMode));
     }
 
     notifyListeners();
@@ -290,11 +310,6 @@ class MusicProvider extends ChangeNotifier {
       case RepeatMode.all:
         _repeatMode = RepeatMode.off;
         break;
-    }
-
-    // Update the audio service with the new repeat mode
-    if (_audioService != null) {
-      _audioService!.setLoopMode(_getLoopMode(_repeatMode));
     }
 
     notifyListeners();
