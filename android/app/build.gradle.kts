@@ -31,6 +31,16 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            // Default values to prevent "not found" errors
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "password"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "alias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "password"
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
@@ -39,16 +49,6 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
-        }
-    }
-
-    signingConfigs {
-        create("release") {
-            // Default values to prevent "not found" errors
-            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "password"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "alias"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "password"
         }
     }
 
