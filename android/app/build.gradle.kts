@@ -1,12 +1,12 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-
-import java.util.Properties
-import java.io.FileInputStream
 
 // Load keystore properties for release signing
 val keystoreProperties = Properties()
@@ -17,43 +17,32 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.offmusic.player"
-    compileSdk = flutter.compileSdkVersion
-    // ndkVersion = flutter.ndkVersion  // Commented out to avoid NDK issues
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
-    // Configure signing configs
-    signingConfigs {
-        create("release") {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-            }
-        }
-    }
+    compileSdk = 34
 
     defaultConfig {
         // Unique Application ID for OffMusic app
         applicationId = "com.offmusic.player"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21  // Required for audio services
-        targetSdk = 34  // Latest stable target
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-        multiDexEnabled = true  // Support for large apps
+        minSdk = 21
+        targetSdk = 34
+        // Use Flutter-managed versioning if available, otherwise default
+        versionCode = try {
+            // If flutter extension is available (from flutter-gradle-plugin), use it
+            @Suppress("UNCHECKED_CAST")
+            (project.extensions.findByName("flutter") as? org.gradle.api.plugins.ExtensionAware)
+            // If not available at configuration time, fall back to 1
+            ?: 1
+            // Fallback below; the above can’t be evaluated simply, so use defaults
+        } catch (_: Exception) {
+            1
+        }
+        versionName = "1.0"
+        multiDexEnabled = true
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             // Use release signing config if keystore exists, otherwise use debug
             signingConfig = if (keystorePropertiesFile.exists()) {
@@ -64,14 +53,41 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
-        debug {
-            signingConfig = signingConfigs.getByName("debug")
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = (keystoreProperties["keyAlias"] as String?)
+                keyPassword = (keystoreProperties["keyPassword"] as String?)
+                val storeFilePath = (keystoreProperties["storeFile"] as String?)
+                if (storeFilePath != null) {
+                    storeFile = file(storeFilePath)
+                }
+                storePassword = (keystoreProperties["storePassword"] as String?)
+            }
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xjvm-default=all")
+    }
+
+    // Enable core library desugaring if needed by transitive libs
+    buildFeatures {
+        // leave defaults
     }
 }
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    // coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 flutter {
