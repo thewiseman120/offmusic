@@ -24,17 +24,9 @@ android {
         applicationId = "com.offmusic.player"
         minSdk = 21
         targetSdk = 34
-        // Use Flutter-managed versioning if available, otherwise default
-        versionCode = try {
-            // If flutter extension is available (from flutter-gradle-plugin), use it
-            @Suppress("UNCHECKED_CAST")
-            (project.extensions.findByName("flutter") as? org.gradle.api.plugins.ExtensionAware)
-            // If not available at configuration time, fall back to 1
-            ?: 1
-            // Fallback below; the above can’t be evaluated simply, so use defaults
-        } catch (_: Exception) {
-            1
-        }
+        // Set a concrete integer versionCode; CI previously failed due to a type mismatch.
+        // You can later wire this to a value from env or a gradle property if needed.
+        versionCode = 1
         versionName = "1.0"
         multiDexEnabled = true
     }
