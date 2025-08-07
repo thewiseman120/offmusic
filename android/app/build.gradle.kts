@@ -36,12 +36,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            // Use release signing config if keystore exists, otherwise use debug
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }
@@ -49,15 +44,11 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias = (keystoreProperties["keyAlias"] as String?)
-                keyPassword = (keystoreProperties["keyPassword"] as String?)
-                val storeFilePath = (keystoreProperties["storeFile"] as String?)
-                if (storeFilePath != null) {
-                    storeFile = file(storeFilePath)
-                }
-                storePassword = (keystoreProperties["storePassword"] as String?)
-            }
+            keyAlias = System.getenv("KEY_ALIAS") ?: (keystoreProperties["keyAlias"] as? String)
+            keyPassword = System.getenv("KEY_PASSWORD") ?: (keystoreProperties["keyPassword"] as? String)
+            val storeFilePath = System.getenv("KEYSTORE_FILE") ?: (keystoreProperties["storeFile"] as? String)
+            storeFile = storeFilePath?.let { file(it) }
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (keystoreProperties["storePassword"] as? String)
         }
     }
 
