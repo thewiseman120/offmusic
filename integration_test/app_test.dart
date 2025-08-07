@@ -5,9 +5,9 @@ import 'package:offmusic/main.dart' as app;
 
 void main() {
   // Use the integration test binding so platform plugins are available.
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   // For stability, allow unrestricted frame policy (optional).
-  // binding.deferFirstFrame();
+  // (No binding variable needed)
 
   group('OffMusic Integration Tests', () {
     testWidgets('App launches successfully', (WidgetTester tester) async {
