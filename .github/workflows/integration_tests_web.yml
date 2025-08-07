@@ -37,6 +37,6 @@ jobs:
       - name: Run unit/widget tests (VM)
         run: flutter test
 
-      # Run integration tests on Web (Edge)
-      - name: Run integration tests (Web Edge)
-        run: flutter test -d edge integration_test/app_test.dart
+      # Run integration tests on Web (Chrome)
+      - name: Run integration tests (Web Chrome)
+        run: flutter test -d chrome integration_test/app_test.dart
