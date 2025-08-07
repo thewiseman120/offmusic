@@ -93,6 +93,14 @@ class _MainScreenState extends State<MainScreen>
                 label: 'Search',
               ),
               BottomNavigationBarItem(
+                icon: Icon(Icons.category, size: iconSize),
+                label: 'Genres',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history, size: iconSize),
+                label: 'Recent',
+              ),
+              BottomNavigationBarItem(
                 icon: Icon(Icons.playlist_play_rounded, size: iconSize),
                 label: 'Playlists',
               ),

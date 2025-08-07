@@ -15,22 +15,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    // Defer initialization to after the first frame to avoid notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeApp();
+    });
   }
 
   Future<void> _initializeApp() async {
     final musicProvider = Provider.of<MusicProvider>(context, listen: false);
     await musicProvider.initializeApp();
-    
-    if (mounted) {
+
+    if (!mounted) return;
+
+    // Also defer navigation to the next frame to ensure no build-phase updates collide
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => musicProvider.hasPermission 
-              ? const HomeScreen() 
+          builder: (context) => musicProvider.hasPermission
+              ? const HomeScreen()
               : const PermissionScreen(),
         ),
       );
-    }
+    });
   }
 
   @override
