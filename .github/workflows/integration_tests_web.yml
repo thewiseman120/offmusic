@@ -1,0 +1,42 @@
+name: Integration Tests (Web)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  integration-tests-web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # You can pin a version if needed, e.g.:
+          # flutter-version: '3.22.x'
+
+      - name: Enable web
+        run: flutter config --enable-web
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Show Flutter doctor (for debugging)
+        run: flutter doctor -v
+
+      # Optional: analyze to catch static issues early
+      - name: Flutter analyze
+        run: flutter analyze
+
+      # Run unit/widget tests (VM)
+      - name: Run unit/widget tests (VM)
+        run: flutter test
+
+      # Run integration tests on Web (Edge)
+      - name: Run integration tests (Web Edge)
+        run: flutter test -d edge integration_test/app_test.dart
