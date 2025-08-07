@@ -59,7 +59,23 @@ class MusicProvider extends ChangeNotifier {
     // Initialize performance service
     PerformanceService.initialize();
 
-    // Initialize background audio service
+    // On web, skip native services/permissions that rely on Android/iOS channels
+    if (kIsWeb) {
+      _hasPermission = true; // assume accessible media or stubbed permissions on web
+
+      // Skip background audio native handler on web
+      _audioService = null;
+
+      // Optionally perform web-compatible data setup (keep as-is if scanning is native-only)
+      await scanMedia();
+      await loadFavoritesAndPlaylists();
+
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    // Non-web (mobile/desktop) path uses native services
     _audioService = BackgroundAudioService();
     await _audioService?.initialize();
 
@@ -79,6 +95,10 @@ class MusicProvider extends ChangeNotifier {
   }
 
   void _setupAudioListeners() {
+    if (kIsWeb || _audioService == null) {
+      return;
+    }
+
     _audioService?.playingStream.listen((playing) {
       _isPlaying = playing;
       notifyListeners();
@@ -195,6 +215,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// Play current song
   Future<void> play() async {
+    if (kIsWeb) return;
     if (_audioService != null) {
       await _audioService!.play();
     }
@@ -202,6 +223,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// Pause current song
   Future<void> pause() async {
+    if (kIsWeb) return;
     if (_audioService != null) {
       await _audioService!.pause();
     }
@@ -209,6 +231,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// Stop playback
   Future<void> stop() async {
+    if (kIsWeb) return;
     if (_audioService != null) {
       await _audioService!.stop();
     }
@@ -217,6 +240,7 @@ class MusicProvider extends ChangeNotifier {
   /// Play or pause current song
   Future<void> playPause() async {
     try {
+      if (kIsWeb) return;
       if (_audioService == null) {
         debugPrint('Audio service not initialized');
         return;
@@ -236,12 +260,14 @@ class MusicProvider extends ChangeNotifier {
   }
 
   Future<void> seekTo(Duration position) async {
+    if (kIsWeb) return;
     if (_audioService != null) {
       await _audioService!.seek(position);
     }
   }
 
   Future<void> skipToNext() async {
+    if (kIsWeb) return;
     if (_audioService != null && _currentIndex < _allSongs.length - 1) {
       _currentIndex++;
       _currentSong = _allSongs[_currentIndex];
@@ -251,6 +277,7 @@ class MusicProvider extends ChangeNotifier {
   }
 
   Future<void> skipToPrevious() async {
+    if (kIsWeb) return;
     if (_audioService != null && _currentIndex > 0) {
       _currentIndex--;
       _currentSong = _allSongs[_currentIndex];
@@ -289,7 +316,7 @@ class MusicProvider extends ChangeNotifier {
     }
 
     // Update the audio service with the new playlist
-    if (_audioService != null) {
+    if (!kIsWeb && _audioService != null) {
       _audioService!.setPlaylist(_currentPlaylist, initialIndex: _currentIndex);
     }
 
@@ -315,6 +342,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// Skip to next song with shuffle support
   Future<void> skipToNextWithShuffle() async {
+    if (kIsWeb) return;
     if (_audioService == null) return;
 
     final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
@@ -329,6 +357,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// Skip to previous song with shuffle support
   Future<void> skipToPreviousWithShuffle() async {
+    if (kIsWeb) return;
     if (_audioService == null) return;
 
     final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
@@ -396,11 +425,11 @@ class MusicProvider extends ChangeNotifier {
     // Clean up performance service
     PerformanceService.dispose();
 
-    // Clean up audio service
-    _audioService?.dispose();
+    // Clean up audio service (non-web)
+    if (!kIsWeb) {
+      _audioService?.dispose();
+    }
 
     super.dispose();
   }
 }
-
-
