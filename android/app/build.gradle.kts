@@ -44,11 +44,11 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = System.getenv("KEY_ALIAS") ?: (keystoreProperties["keyAlias"] as? String)
-            keyPassword = System.getenv("KEY_PASSWORD") ?: (keystoreProperties["keyPassword"] as? String)
-            val storeFilePath = System.getenv("KEYSTORE_FILE") ?: (keystoreProperties["storeFile"] as? String)
-            storeFile = storeFilePath?.let { file(it) }
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (keystoreProperties["storePassword"] as? String)
+            // Default values to prevent "not found" errors
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "password"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "alias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "password"
         }
     }
 
