@@ -28,6 +28,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+dependency_overrides:
+  shared_preferences_android: ^2.1.2
   permission_handler: ^11.0.0
   audioplayers: ^5.2.1
   provider: ^6.1.0
