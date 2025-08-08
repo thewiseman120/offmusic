@@ -10,7 +10,7 @@ packages:
     source: hosted
     version: "2.13.0"
   audio_session:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: audio_session
       sha256: "2b7fff16a552486d078bfc09a8cde19f426dc6d6329262b684182597bec5b1ac"
@@ -18,7 +18,7 @@ packages:
     source: hosted
     version: "0.1.25"
   audioplayers:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: audioplayers
       sha256: c05c6147124cd63e725e861335a8b4d57300b80e6e92cea7c145c739223bbaef
@@ -122,7 +122,7 @@ packages:
     source: hosted
     version: "3.0.6"
   cupertino_icons:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: cupertino_icons
       sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
@@ -154,7 +154,7 @@ packages:
     source: hosted
     version: "7.0.1"
   file_picker:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: file_picker
       sha256: ab13ae8ef5580a411c458d6207b6774a6c237d77ac37011b13994879f68a8810
@@ -312,7 +312,7 @@ packages:
     source: hosted
     version: "1.0.0"
   on_audio_query:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: on_audio_query
       sha256: "28d7a247f8a0580b5d1befba15c8d8fd7e1cf3cd8e0449d54a66fc2ef27adf10"
@@ -360,7 +360,7 @@ packages:
     source: hosted
     version: "1.9.1"
   path_provider:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -408,7 +408,7 @@ packages:
     source: hosted
     version: "2.3.0"
   permission_handler:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: permission_handler
       sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
@@ -480,7 +480,7 @@ packages:
     source: hosted
     version: "5.0.3"
   provider:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: provider
       sha256: "4abbd070a04e9ddc287673bf5a030c7ca8b685ff70218720abab8b092f53dd84"
@@ -488,7 +488,7 @@ packages:
     source: hosted
     version: "6.1.5"
   rxdart:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: rxdart
       sha256: "0c7c0cedd93788d996e33041ffecda924cc54389199cde4e6a34b440f50044cb"
@@ -496,7 +496,7 @@ packages:
     source: hosted
     version: "0.27.7"
   shared_preferences:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: shared_preferences
       sha256: "6e8bf70b7fef813df4e9a36f658ac46d107db4b4cfe1048b477d4e453a8159f5"
@@ -504,7 +504,7 @@ packages:
     source: hosted
     version: "2.5.3"
   shared_preferences_android:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: shared_preferences_android
       sha256: "5bcf0772a761b04f8c6bf814721713de6f3e5d9d89caf8d3fe031b02a342379e"
