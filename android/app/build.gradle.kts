@@ -77,8 +77,8 @@ android {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
-    implementation("androidx.preference:preference:1.2.0")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")  // Uncommented and updated
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("androidx.legacy:legacy-preference-v14:1.0.0")
 }
 
 flutter {
