@@ -36,7 +36,9 @@ dependencies:
   # shared_preferences_android:
   #   path: local_plugins/shared_preferences_android
   
-  permission_handler: ^10.0.0  # Use official plugin instead of local
+  # Update permission_handler to latest version
+  permission_handler: ^11.0.0  # Update to this version or newer
+  
   audioplayers: ^5.2.1
   provider: ^6.1.0
   path_provider: ^2.1.0  # Use official plugin instead of local
