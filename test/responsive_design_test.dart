@@ -22,11 +22,14 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: Text('Responsive Test'),
+            body: Center(
+              child: Text('Responsive Test'),
+            ),
           ),
         ),
       );
-
+      
+      // Verify the widget was built
       expect(find.text('Responsive Test'), findsOneWidget);
     });
   });

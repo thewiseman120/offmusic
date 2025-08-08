@@ -1,0 +1,51 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+      
+      # Add this step to modify pubspec.yaml before getting dependencies
+      - name: Downgrade shared_preferences
+        run: |
+          sed -i 's/shared_preferences:.*/shared_preferences: 2.0.15/g' pubspec.yaml
+          cat pubspec.yaml
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      # Add this step to patch the plugin
+      - name: Patch shared_preferences_android plugin
+        run: |
+          PLUGIN_PATH="$HOME/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.11/android/src/main/kotlin/io/flutter/plugins/sharedpreferences/SharedPreferencesPlugin.kt"
+          echo "Patching file: $PLUGIN_PATH"
+          sed -i 's/val preferences = PreferenceManager.getDefaultSharedPreferences(context)/val preferences = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)/g' "$PLUGIN_PATH"
+          sed -i '1s/^/import android.content.Context\n/' "$PLUGIN_PATH"
+          grep -A 3 "preferences =" "$PLUGIN_PATH"
+      
+      - name: Analyze project
+        run: flutter analyze
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk

@@ -28,19 +28,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  shared_preferences_android: ^2.1.2
-  permission_handler: ^11.0.0
+  
+  # Use the official shared_preferences package
+  shared_preferences: ^2.2.2
+  
+  # Remove or comment out the problematic local dependency
+  # shared_preferences_android:
+  #   path: local_plugins/shared_preferences_android
+  
+  permission_handler: ^10.0.0  # Use official plugin instead of local
   audioplayers: ^5.2.1
   provider: ^6.1.0
-  path_provider: ^2.0.15
-  shared_preferences: ^2.2.0
+  path_provider: ^2.1.0  # Use official plugin instead of local
   rxdart: ^0.27.7
   file_picker: ^8.0.0+1
   audio_session: ^0.1.16
   on_audio_query: ^2.9.0
   cupertino_icons: ^1.0.8
-
-
 
 dev_dependencies:
   flutter_test:
