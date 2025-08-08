@@ -1,0 +1,4 @@
+dependencies {
+    // Force a specific version of androidx.preference
+    implementation("androidx.preference:preference-ktx:1.2.0")
+}

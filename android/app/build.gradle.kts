@@ -55,6 +55,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Add this line
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -64,13 +66,17 @@ android {
 
     // Enable core library desugaring if needed by transitive libs
     buildFeatures {
-        // leave defaults
+        // Enable desugaring
+        viewBinding = true
     }
 }
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
-    // coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")  // Uncommented and updated
+    
+    // Add explicit dependency for androidx.preference
+    implementation("androidx.preference:preference-ktx:1.2.0")
 }
 
 flutter {
