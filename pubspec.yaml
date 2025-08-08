@@ -33,7 +33,7 @@ dependencies:
   provider: ^6.1.0
   path_provider: ^2.0.15
   shared_preferences: ^2.2.2
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   file_picker: ^8.0.0+1
   audio_session: ^0.1.16
   on_audio_query: ^2.9.0
