@@ -30,14 +30,10 @@ dependencies:
     sdk: flutter
   
   # Use the official shared_preferences package
-  shared_preferences: ^2.2.2
-  
-  # Remove or comment out the problematic local dependency
-  # shared_preferences_android:
-  #   path: local_plugins/shared_preferences_android
+  shared_preferences: ^2.2.3 # Updated to latest version
   
   # Update permission_handler to latest version
-  permission_handler: ^11.0.0  # Update to this version or newer
+  permission_handler: ^12.0.1  # Updated to latest version
   
   audioplayers: ^5.2.1
   provider: ^6.1.0
