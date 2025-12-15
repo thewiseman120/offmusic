@@ -30,7 +30,7 @@ dependencies:
     sdk: flutter
   
   # Use the official shared_preferences package
-  shared_preferences: ^2.2.3 # Updated to latest version
+  shared_preferences: ^2.5.4 # Updated to latest version
   
   # Update permission_handler to latest version
   permission_handler: ^12.0.1  # Updated to latest version
