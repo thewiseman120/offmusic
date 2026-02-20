@@ -61,9 +61,10 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_rounded).last);
+    await tester.pump(const Duration(milliseconds: 350));
 
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Settings Screen\n(Coming Soon)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
