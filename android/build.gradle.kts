@@ -1,3 +1,4 @@
+import com.android.build.gradle.LibraryExtension
 import org.gradle.api.file.Directory
 
 allprojects {
@@ -18,6 +19,17 @@ subprojects {
 
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+
+subprojects {
+    plugins.withId("com.android.library") {
+        extensions.configure<LibraryExtension>("android") {
+            if (namespace == null) {
+                namespace = "com.offmusic.${project.name.replace('-', '_')}"
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
