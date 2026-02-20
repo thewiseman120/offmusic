@@ -84,6 +84,7 @@ class PermissionScreen extends StatelessWidget {
     if (hasPermission && context.mounted) {
       final musicProvider = Provider.of<MusicProvider>(context, listen: false);
       await musicProvider.scanMedia();
+      await musicProvider.loadFavoritesAndPlaylists();
 
       if (context.mounted) {
         Navigator.of(context).pushReplacement(

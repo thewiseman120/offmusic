@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/music_provider.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 import 'permission_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => musicProvider.hasPermission
-              ? const HomeScreen()
+              ? const MainScreen()
               : const PermissionScreen(),
         ),
       );
