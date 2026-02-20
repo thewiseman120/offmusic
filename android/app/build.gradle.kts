@@ -17,13 +17,13 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.offmusic.player"
-    compileSdk = 35 // Updated to align with latest SDK
+    compileSdk = 36
 
     defaultConfig {
         // Unique Application ID for OffMusic app
         applicationId = "com.offmusic.player"
         minSdk = 21
-        targetSdk = 35 // Updated to align with latest SDK
+        targetSdk = 36
         // Set a concrete integer versionCode; CI previously failed due to a type mismatch.
         // You can later wire this to a value from env or a gradle property if needed.
         versionCode = 1

@@ -168,17 +168,31 @@ class MusicProvider extends ChangeNotifier {
     }
   }
 
+  List<SongModel> get _activeQueue {
+    if (_isShuffleEnabled && _currentPlaylist.isNotEmpty) {
+      return _currentPlaylist;
+    }
+
+    if (_currentPlaylist.isNotEmpty) {
+      return _currentPlaylist;
+    }
+
+    return _allSongs;
+  }
+
   /// Set current song and play it
   Future<void> setCurrentSong(SongModel song) async {
     try {
       _currentSong = song;
-      _currentIndex = _allSongs.indexWhere((s) => s.id == song.id);
+      _currentPlaylist = List.from(_allSongs);
+      _currentIndex = _currentPlaylist.indexWhere((s) => s.id == song.id);
       if (_currentIndex == -1) {
         _currentIndex = 0;
       }
 
       if (_audioService != null) {
-        await _audioService!.playSong(song);
+        await _audioService!
+            .setPlaylist(_currentPlaylist, initialIndex: _currentIndex);
       } else {
         debugPrint('Audio service not initialized when setting current song');
       }
@@ -186,7 +200,6 @@ class MusicProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error setting current song ${song.title}: $e');
-      // Reset state on error
       _isPlaying = false;
       notifyListeners();
     }
@@ -268,20 +281,29 @@ class MusicProvider extends ChangeNotifier {
 
   Future<void> skipToNext() async {
     if (kIsWeb) return;
-    if (_audioService != null && _currentIndex < _allSongs.length - 1) {
+    if (_audioService == null) return;
+
+    final playlist = _activeQueue;
+    if (_currentIndex >= playlist.length - 1) return;
+
+    final nextSong = await _audioService!.seekToNext();
+    if (nextSong != null) {
       _currentIndex++;
-      _currentSong = _allSongs[_currentIndex];
-      await _audioService!.seekToNext();
+      _currentSong = nextSong;
       notifyListeners();
     }
   }
 
   Future<void> skipToPrevious() async {
     if (kIsWeb) return;
-    if (_audioService != null && _currentIndex > 0) {
+    if (_audioService == null) return;
+
+    if (_currentIndex <= 0) return;
+
+    final previousSong = await _audioService!.seekToPrevious();
+    if (previousSong != null) {
       _currentIndex--;
-      _currentSong = _allSongs[_currentIndex];
-      await _audioService!.seekToPrevious();
+      _currentSong = previousSong;
       notifyListeners();
     }
   }
@@ -342,32 +364,12 @@ class MusicProvider extends ChangeNotifier {
 
   /// Skip to next song with shuffle support
   Future<void> skipToNextWithShuffle() async {
-    if (kIsWeb) return;
-    if (_audioService == null) return;
-
-    final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
-
-    if (_currentIndex < playlist.length - 1) {
-      _currentIndex++;
-      _currentSong = playlist[_currentIndex];
-      await _audioService!.seekToNext();
-      notifyListeners();
-    }
+    await skipToNext();
   }
 
   /// Skip to previous song with shuffle support
   Future<void> skipToPreviousWithShuffle() async {
-    if (kIsWeb) return;
-    if (_audioService == null) return;
-
-    final playlist = _isShuffleEnabled ? _currentPlaylist : _allSongs;
-
-    if (_currentIndex > 0) {
-      _currentIndex--;
-      _currentSong = playlist[_currentIndex];
-      await _audioService!.seekToPrevious();
-      notifyListeners();
-    }
+    await skipToPrevious();
   }
 
   Future<void> loadFavoritesAndPlaylists() async {

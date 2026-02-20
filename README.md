@@ -29,6 +29,10 @@ This project includes a complete GitHub Actions CI/CD pipeline for automatic APK
 2. Click on the latest successful workflow run
 3. Download the APK from the **Artifacts** section
 
+## 🧹 Repository Hygiene
+
+Redundant/generated documentation artifacts and temporary analysis files have been removed to keep the repository focused on source code and primary guides.
+
 ## 🛠️ Development Setup
 
 ### Prerequisites

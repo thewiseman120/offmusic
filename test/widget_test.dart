@@ -1,13 +1,12 @@
-// This is a basic Flutter widget test for the OffMusic app.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offmusic/providers/music_provider.dart';
+import 'package:offmusic/screens/main_screen.dart';
 import 'package:offmusic/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   testWidgets('MyApp widget creation test', (WidgetTester tester) async {
-    // Test that MyApp widget can be created without platform dependencies
     final testApp = MaterialApp(
       title: 'OffMusic Test',
       theme: AppTheme.lightTheme,
@@ -20,13 +19,11 @@ void main() {
 
     await tester.pumpWidget(testApp);
 
-    // Verify MaterialApp is present
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.text('Test App'), findsOneWidget);
   });
 
   testWidgets('MusicProvider can be created', (WidgetTester tester) async {
-    // Test that MusicProvider can be instantiated
     final provider = MusicProvider();
     expect(provider, isA<MusicProvider>());
     expect(provider.isPlaying, false);
@@ -34,21 +31,46 @@ void main() {
     expect(provider.allSongs, isEmpty);
   });
 
-  testWidgets('App theme is properly configured', (WidgetTester tester) async {
-    // Test that the app theme is working
+  testWidgets('MainScreen has exactly 4 bottom navigation items',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.lightTheme,
-        home: const Scaffold(
-          body: Text('Theme Test'),
+      ChangeNotifierProvider(
+        create: (_) => MusicProvider(),
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const MainScreen(),
         ),
       ),
     );
 
-    expect(find.text('Theme Test'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Playlists'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+  });
 
-    // Verify theme is applied
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(materialApp.theme, isNotNull);
+  testWidgets('MainScreen tab taps remain in-bounds',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => MusicProvider(),
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const MainScreen(),
+        ),
+      ),
+    );
+
+    final settingsNavIcon = find.descendant(
+      of: find.byType(BottomNavigationBar),
+      matching: find.byIcon(Icons.settings_rounded),
+    );
+
+    expect(settingsNavIcon, findsOneWidget);
+    await tester.tap(settingsNavIcon);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Coming Soon'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

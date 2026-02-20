@@ -2,626 +2,75 @@ name: Build Flutter Android APK
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build type'
+        description: Build type
         required: true
-        default: 'release'
+        default: release
         type: choice
         options:
-        - release
-        - debug
+          - release
+          - debug
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    env:
-      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-    
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: ☕ Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🔧 Configure Java Home for Gradle
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
-          echo "Java Home: $JAVA_HOME"
-          echo "Java Version: $(java -version 2>&1 | head -n 1)"
-          
       - name: 🐦 Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
           cache: true
 
-      - name: 📦 Cache Gradle
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-          
       - name: 📋 Flutter doctor
         run: flutter doctor -v
-        
+
       - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🩹 Patch on_audio_query_android manifest package
         run: |
-          flutter pub get
-          flutter pub deps
-
-      - name: 🔧 Clean build
-        run: flutter clean
-
-      - name: 🔧 Fix plugin namespace, manifest, and JVM compatibility issues
-        run: |
-          # Fix on_audio_query_android plugin
-          PLUGIN_DIR="$HOME/.pub-cache/hosted/pub.dev/on_audio_query_android-1.1.0/android"
-          if [ -d "$PLUGIN_DIR" ]; then
-            echo "Fixing on_audio_query_android plugin..."
-
-            # Add namespace to build.gradle if missing
-            if ! grep -q "namespace" "$PLUGIN_DIR/build.gradle"; then
-              sed -i '/android {/a\    namespace "com.lucasjosino.on_audio_query_android"' "$PLUGIN_DIR/build.gradle"
-              echo "✅ Namespace added to build.gradle"
-            fi
-
-            # Fix JVM target compatibility
-            if ! grep -q "jvmTarget.*17" "$PLUGIN_DIR/build.gradle"; then
-              # Add or update compileOptions
-              if ! grep -q "compileOptions" "$PLUGIN_DIR/build.gradle"; then
-                sed -i '/namespace/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$PLUGIN_DIR/build.gradle"
-              fi
-
-              # Add or update kotlinOptions
-              if ! grep -q "kotlinOptions" "$PLUGIN_DIR/build.gradle"; then
-                sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$PLUGIN_DIR/build.gradle"
-              else
-                sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$PLUGIN_DIR/build.gradle"
-              fi
-              echo "✅ JVM target compatibility fixed (Java 17 + Kotlin 17)"
-            fi
-
-            # Remove package attribute from AndroidManifest.xml
-            MANIFEST_FILE="$PLUGIN_DIR/src/main/AndroidManifest.xml"
-            if [ -f "$MANIFEST_FILE" ]; then
-              if grep -q 'package=' "$MANIFEST_FILE"; then
-                sed -i 's/package="[^"]*"//g' "$MANIFEST_FILE"
-                sed -i 's/<manifest[^>]*>/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/' "$MANIFEST_FILE"
-                echo "✅ Package attribute removed from AndroidManifest.xml"
-              fi
-            fi
-
-            echo "✅ on_audio_query_android plugin fully fixed"
-          fi
-
-          # Fix other potential plugins with similar issues
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*/android/build.gradle" | while read gradle_file; do
-            plugin_dir=$(dirname "$gradle_file")
-            plugin_name=$(basename "$(dirname "$plugin_dir")")
-
-            if [[ "$plugin_name" == *"audio"* ]] || [[ "$plugin_name" == *"permission"* ]] || [[ "$plugin_name" == *"path_provider"* ]] || [[ "$plugin_name" == *"shared_preferences"* ]] || [[ "$plugin_name" == *"file_picker"* ]]; then
-              echo "Fixing plugin: $plugin_name"
-
-              # Add namespace if missing
-              if ! grep -q "namespace" "$gradle_file"; then
-                namespace="com.example.${plugin_name}"
-                sed -i "/android {/a\\    namespace \"$namespace\"" "$gradle_file"
-                echo "✅ Fixed namespace for $plugin_name"
-              fi
-
-              # Fix JVM target compatibility and kotlinOptions issues
-              if ! grep -q "jvmTarget.*17" "$gradle_file"; then
-                # Add compileOptions if missing
-                if ! grep -q "compileOptions" "$gradle_file"; then
-                  sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' "$gradle_file"
-                fi
-
-                # Fix kotlinOptions placement - should be in android block, not compileOptions
-                if grep -q "compileOptions.*kotlinOptions" "$gradle_file"; then
-                  # Remove kotlinOptions from compileOptions
-                  sed -i '/compileOptions/,/}/ { /kotlinOptions/,/}/d; }' "$gradle_file"
-                fi
-
-                # Add kotlinOptions correctly in android block
-                if ! grep -q "kotlinOptions" "$gradle_file"; then
-                  sed -i '/compileOptions/,/}/a\    kotlinOptions {\n        jvmTarget = "17"\n    }' "$gradle_file"
-                else
-                  sed -i 's/jvmTarget = "[^"]*"/jvmTarget = "17"/' "$gradle_file"
-                fi
-                echo "✅ Fixed JVM target for $plugin_name"
-              fi
-
-              # Fix manifest
-              manifest_file="$plugin_dir/src/main/AndroidManifest.xml"
-              if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
-                sed -i 's/package="[^"]*"//g' "$manifest_file"
-                echo "✅ Fixed manifest for $plugin_name"
-              fi
-            fi
+          set -e
+          find "$HOME/.pub-cache/hosted/pub.dev" -type f \
+            -path "*/on_audio_query_android-*/android/src/main/AndroidManifest.xml" | while read -r manifest; do
+            echo "Patching $manifest"
+            sed -i -E 's/ package="[^"]*"//g' "$manifest"
           done
 
-          # Fix audio_session plugin kotlinOptions issue
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*audio_session*/android/build.gradle" | while read audio_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$audio_gradle")")")
-            echo "Applying comprehensive fix for audio_session $plugin_version..."
-
-            # Create a backup
-            cp "$audio_gradle" "$audio_gradle.backup"
-
-            # Remove all kotlinOptions blocks and fix the structure
-            {
-              echo "group 'com.ryanheise.audio_session'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'com.ryanheise.audio_session'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "    implementation 'androidx.media:media:1.6.0'"
-              echo "    implementation 'androidx.core:core:1.10.1'"
-              echo "}"
-            } > "$audio_gradle"
-            echo "✅ Completely rewrote audio_session $plugin_version build.gradle"
-          done
-
-
-          # Fix just_audio plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*just_audio*/android/build.gradle" | while read just_audio_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$just_audio_gradle")")")
-            echo "Completely rewriting just_audio $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$just_audio_gradle" "$just_audio_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'com.ryanheise.just_audio'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'com.ryanheise.just_audio'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "    implementation 'androidx.media:media:1.6.0'"
-              echo "    implementation 'androidx.core:core:1.10.1'"
-              echo "    implementation 'com.google.android.exoplayer:exoplayer:2.17.1'"
-              echo "}"
-            } > "$just_audio_gradle"
-            echo "✅ Completely rewrote just_audio $plugin_version build.gradle"
-
-            # Fix manifest if needed
-            manifest_file="$(dirname "$just_audio_gradle")/src/main/AndroidManifest.xml"
-            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
-              sed -i 's/package="[^"]*"//g' "$manifest_file"
-              echo "✅ Fixed manifest for just_audio $plugin_version"
-            fi
-          done
-
-          # Fix file_picker plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*file_picker*/android/build.gradle" | while read file_picker_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$file_picker_gradle")")")
-            echo "Completely rewriting file_picker $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$file_picker_gradle" "$file_picker_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'com.mr.flutter.plugin.filepicker'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'com.mr.flutter.plugin.filepicker'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "    implementation 'androidx.core:core:1.10.1'"
-              echo "    implementation 'androidx.documentfile:documentfile:1.0.1'"
-              echo "}"
-            } > "$file_picker_gradle"
-            echo "✅ Completely rewrote file_picker $plugin_version build.gradle"
-
-            # Fix manifest if needed
-            manifest_file="$(dirname "$file_picker_gradle")/src/main/AndroidManifest.xml"
-            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
-              sed -i 's/package="[^"]*"//g' "$manifest_file"
-              echo "✅ Fixed manifest for file_picker $plugin_version"
-            fi
-          done
-
-          # Fix path_provider plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*path_provider*/android/build.gradle" | while read path_provider_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$path_provider_gradle")")")
-            echo "Completely rewriting path_provider $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$path_provider_gradle" "$path_provider_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'io.flutter.plugins.pathprovider'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'io.flutter.plugins.pathprovider'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "}"
-            } > "$path_provider_gradle"
-            echo "✅ Completely rewrote path_provider $plugin_version build.gradle"
-          done
-
-          # Fix shared_preferences plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*shared_preferences*/android/build.gradle" | while read shared_prefs_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$shared_prefs_gradle")")")
-            echo "Completely rewriting shared_preferences $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$shared_prefs_gradle" "$shared_prefs_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'io.flutter.plugins.sharedpreferences'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'io.flutter.plugins.sharedpreferences'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "}"
-            } > "$shared_prefs_gradle"
-            echo "✅ Completely rewrote shared_preferences $plugin_version build.gradle"
-          done
-
-          # Fix permission_handler_android plugin by completely rewriting build.gradle
-          find "$HOME/.pub-cache/hosted/pub.dev" -name "build.gradle" -path "*permission_handler_android*/android/build.gradle" | while read permission_gradle; do
-            plugin_version=$(basename "$(dirname "$(dirname "$permission_gradle")")")
-            echo "Completely rewriting permission_handler_android $plugin_version build.gradle..."
-
-            # Create a backup
-            cp "$permission_gradle" "$permission_gradle.backup"
-
-            # Completely rewrite the build.gradle file with correct structure
-            {
-              echo "group 'com.baseflow.permissionhandler'"
-              echo "version '1.0-SNAPSHOT'"
-              echo ""
-              echo "buildscript {"
-              echo "    ext.kotlin_version = '1.9.10'"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "    dependencies {"
-              echo "        classpath 'com.android.tools.build:gradle:8.1.0'"
-              echo "        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version\""
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "rootProject.allprojects {"
-              echo "    repositories {"
-              echo "        google()"
-              echo "        mavenCentral()"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "apply plugin: 'com.android.library'"
-              echo "apply plugin: 'kotlin-android'"
-              echo ""
-              echo "android {"
-              echo "    namespace 'com.baseflow.permissionhandler'"
-              echo "    compileSdkVersion 34"
-              echo "    compileOptions {"
-              echo "        sourceCompatibility JavaVersion.VERSION_17"
-              echo "        targetCompatibility JavaVersion.VERSION_17"
-              echo "    }"
-              echo "    kotlinOptions {"
-              echo "        jvmTarget = \"17\""
-              echo "    }"
-              echo "    sourceSets {"
-              echo "        main.java.srcDirs += 'src/main/kotlin'"
-              echo "    }"
-              echo "    defaultConfig {"
-              echo "        minSdkVersion 16"
-              echo "    }"
-              echo "}"
-              echo ""
-              echo "dependencies {"
-              echo "    implementation \"org.jetbrains.kotlin:kotlin-stdlib-jdk7:\$kotlin_version\""
-              echo "    implementation 'androidx.core:core:1.10.1'"
-              echo "    implementation 'androidx.activity:activity:1.7.2'"
-              echo "    implementation 'androidx.fragment:fragment:1.6.1'"
-              echo "}"
-            } > "$permission_gradle"
-            echo "✅ Completely rewrote permission_handler_android $plugin_version build.gradle"
-
-            # Fix manifest if needed
-            manifest_file="$(dirname "$permission_gradle")/src/main/AndroidManifest.xml"
-            if [ -f "$manifest_file" ] && grep -q 'package=' "$manifest_file"; then
-              sed -i 's/package="[^"]*"//g' "$manifest_file"
-              echo "✅ Fixed manifest for permission_handler_android $plugin_version"
-            fi
-          done
 
       - name: 🔍 Analyze code
-        run: flutter analyze
+        run: flutter analyze --fatal-infos
 
       - name: 🧪 Run tests
         run: flutter test
-        
-      - name: 🔐 Decode keystore (Release only)
-        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
+
+      - name: 🏗️ Build APK
         run: |
-          echo "Decoding keystore..."
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          echo "Keystore decoded. File size: $(wc -c < android/app/upload-keystore.jks) bytes"
-
-      - name: 🔑 Create key.properties (Release only)
-        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
-        run: |
-          cat <<EOF > android/key.properties
-          storePassword=$KEYSTORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=app/upload-keystore.jks
-          EOF
-
-      - name: 🔍 Debug keystore setup
-        if: env.KEYSTORE_BASE64 != '' && (github.event.inputs.build_type != 'debug')
-        run: |
-          echo "Checking keystore and key.properties setup..."
-          ls -la android/
-          ls -la android/app/
-          echo "Contents of key.properties:"
-          cat android/key.properties
-          echo "Keystore file exists:"
-          test -f android/app/upload-keystore.jks && echo "✅ Keystore found" || echo "❌ Keystore missing"
-
-      - name: 🏗️ Build Release APK
-        if: github.event.inputs.build_type != 'debug'
-        run: flutter build apk --release --verbose
-
-      - name: 🏗️ Build Debug APK
-        if: github.event.inputs.build_type == 'debug'
-        run: flutter build apk --debug --verbose
-
-      - name: 📱 Upload Release APK
-        if: github.event.inputs.build_type != 'debug'
-        uses: actions/upload-artifact@v4
-        with:
-          name: offmusic-release-apk-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
-
-      - name: 📱 Upload Debug APK
-        if: github.event.inputs.build_type == 'debug'
-        uses: actions/upload-artifact@v4
-        with:
-          name: offmusic-debug-apk-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7
-          
-      - name: 📊 APK Info
-        run: |
-          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
-            echo "Release APK size: $(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)"
-            echo "Release APK path: build/app/outputs/flutter-apk/app-release.apk"
-          fi
-          if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
-            echo "Debug APK size: $(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)"
-            echo "Debug APK path: build/app/outputs/flutter-apk/app-debug.apk"
+          if [ "${{ github.event.inputs.build_type || 'release' }}" = "debug" ]; then
+            flutter build apk --debug
+          else
+            flutter build apk --release
           fi
 
-
-
-
-
-
-
-
+      - name: 📱 Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ github.event.inputs.build_type || 'release' }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: ignore

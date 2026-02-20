@@ -43,14 +43,20 @@ class _MainScreenState extends State<MainScreen>
   }
 
   void _onTabTapped(int index) {
+    if (index < 0 || index >= _screens.length) {
+      return;
+    }
+
     setState(() {
       _currentIndex = index;
     });
+
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOutCubic,
     );
+
     _animationController.forward().then((_) {
       _animationController.reverse();
     });
@@ -91,14 +97,6 @@ class _MainScreenState extends State<MainScreen>
               BottomNavigationBarItem(
                 icon: Icon(Icons.search_rounded, size: iconSize),
                 label: 'Search',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.category, size: iconSize),
-                label: 'Genres',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: iconSize),
-                label: 'Recent',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.playlist_play_rounded, size: iconSize),
