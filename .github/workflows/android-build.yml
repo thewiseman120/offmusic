@@ -39,6 +39,16 @@ jobs:
       - name: 📦 Install dependencies
         run: flutter pub get
 
+      - name: 🩹 Patch on_audio_query_android manifest package
+        run: |
+          set -e
+          find "$HOME/.pub-cache/hosted/pub.dev" -type f \
+            -path "*/on_audio_query_android-*/android/src/main/AndroidManifest.xml" | while read -r manifest; do
+            echo "Patching $manifest"
+            sed -i -E 's/ package="[^"]*"//g' "$manifest"
+          done
+
+
       - name: 🏗️ Build APK
         run: |
           BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
