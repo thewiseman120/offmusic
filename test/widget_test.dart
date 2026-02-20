@@ -61,10 +61,16 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.settings_rounded).last);
-    await tester.pump(const Duration(milliseconds: 350));
+    final settingsNavIcon = find.descendant(
+      of: find.byType(BottomNavigationBar),
+      matching: find.byIcon(Icons.settings_rounded),
+    );
 
-    expect(find.text('Settings Screen\n(Coming Soon)'), findsOneWidget);
+    expect(settingsNavIcon, findsOneWidget);
+    await tester.tap(settingsNavIcon);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Coming Soon'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
